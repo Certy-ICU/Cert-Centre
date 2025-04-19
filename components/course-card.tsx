@@ -30,8 +30,8 @@ export const CourseCard = ({
   const courseUrl = `/courses/${id}`;
   
   return (
-    <div className="group hover:shadow-sm transition overflow-hidden border rounded-lg p-2 sm:p-3 h-full flex flex-col">
-      <Link href={courseUrl} className="flex-grow">
+    <div className="group shadow-card border rounded-lg p-2 xs:p-2 sm:p-3 h-full flex flex-col">
+      <Link href={courseUrl} className="flex-grow touch-target">
         <div className="relative w-full aspect-video rounded-md overflow-hidden">
           <Image
             fill
@@ -41,15 +41,15 @@ export const CourseCard = ({
           />
         </div>
         <div className="flex flex-col pt-2">
-          <div className="text-base sm:text-lg md:text-base font-medium group-hover:text-sky-700 transition line-clamp-2">
+          <div className="text-base xs:text-base sm:text-lg md:text-base font-medium group-hover:text-sky-700 transition truncate-text-2">
             {title}
           </div>
-          <p className="text-xs text-muted-foreground">
+          <p className="text-xs text-muted-foreground truncate-text-1">
             {category}
           </p>
-          <div className="my-2 sm:my-3 flex items-center gap-x-2 text-xs sm:text-sm md:text-xs">
+          <div className="my-2 xs:my-2 sm:my-3 flex items-center gap-x-2 text-xs xs:text-xs sm:text-sm">
             <div className="flex items-center gap-x-1 text-slate-500">
-              <IconBadge size="sm" icon={BookOpen} />
+              <IconBadge size="xs" icon={BookOpen} />
               <span>
                 {chaptersLength} {chaptersLength === 1 ? "Chapter" : "Chapters"}
               </span>
@@ -62,7 +62,7 @@ export const CourseCard = ({
               value={progress}
             />
           ) : (
-            <p className="text-sm md:text-sm font-medium text-slate-700 dark:text-slate-300">
+            <p className="text-sm font-medium text-slate-700 dark:text-slate-300">
               {formatPrice(price)}
             </p>
           )}

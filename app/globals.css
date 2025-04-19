@@ -80,31 +80,62 @@ body,
     @apply bg-background text-foreground;
   }
   h1 {
-    @apply text-2xl sm:text-3xl md:text-4xl font-bold;
+    @apply text-2xl xs:text-2xl sm:text-3xl md:text-4xl font-bold tracking-tight;
   }
   h2 {
-    @apply text-xl sm:text-2xl md:text-3xl font-semibold;
+    @apply text-xl xs:text-xl sm:text-2xl md:text-3xl font-semibold tracking-tight;
   }
   h3 {
-    @apply text-lg sm:text-xl md:text-2xl font-medium;
+    @apply text-lg xs:text-lg sm:text-xl md:text-2xl font-medium;
+  }
+  h4 {
+    @apply text-base xs:text-base sm:text-lg md:text-xl font-medium;
   }
   p {
-    @apply text-sm sm:text-base;
+    @apply text-sm xs:text-sm sm:text-base leading-relaxed;
   }
 }
 
 /* Responsive adjustments */
 @layer utilities {
   .container-responsive {
-    @apply px-3 sm:px-6 md:px-8 w-full max-w-7xl mx-auto;
+    @apply px-3 xs:px-4 sm:px-6 md:px-8 w-full max-w-7xl mx-auto;
   }
   
   .mobile-py {
-    @apply py-3 sm:py-6;
+    @apply py-2 xs:py-3 sm:py-4 md:py-6;
   }
   
   .mobile-px {
-    @apply px-3 sm:px-6;
+    @apply px-2 xs:px-3 sm:px-4 md:px-6;
+  }
+  
+  .touch-target {
+    @apply min-h-[44px] min-w-[44px];
+  }
+  
+  .truncate-text-1 {
+    @apply truncate;
+  }
+  
+  .truncate-text-2 {
+    @apply line-clamp-2;
+  }
+  
+  .truncate-text-3 {
+    @apply line-clamp-3;
+  }
+  
+  .stack-mobile {
+    @apply flex flex-col xs:flex-col sm:flex-row;
+  }
+  
+  .grid-responsive {
+    @apply grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 xs:gap-3 sm:gap-4 md:gap-5;
+  }
+  
+  .shadow-card {
+    @apply shadow-sm hover:shadow-md transition-shadow duration-200;
   }
 }
 
@@ -114,8 +145,26 @@ body,
 
 /* Mobile-first media query adjustments */
 @media (max-width: 640px) {
-  input, select, textarea {
+  input, select, textarea, button {
     font-size: 16px !important; /* Prevents zoom on iOS */
+  }
+  
+  .touch-element {
+    min-height: 44px;
+    min-width: 44px;
+  }
+  
+  button, 
+  [role="button"],
+  a {
+    @apply touch-target;
+  }
+}
+
+/* Dark mode adjustments for mobile */
+@media (prefers-color-scheme: dark) and (max-width: 640px) {
+  body {
+    @apply bg-black text-white;
   }
 }
 

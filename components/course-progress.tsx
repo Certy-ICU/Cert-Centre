@@ -4,7 +4,7 @@ import { cn } from "@/lib/utils";
 interface CourseProgressProps {
   value: number;
   variant?: "default" | "success",
-  size?: "default" | "sm";
+  size?: "default" | "sm" | "xs";
 };
 
 const colorByVariant = {
@@ -15,6 +15,7 @@ const colorByVariant = {
 const sizeByVariant = {
   default: "text-sm",
   sm: "text-xs",
+  xs: "text-[10px]"
 }
 
 export const CourseProgress = ({
@@ -25,12 +26,15 @@ export const CourseProgress = ({
   return (
     <div>
       <Progress
-        className="h-1.5 sm:h-2"
+        className={cn(
+          "h-1 xs:h-1.5 sm:h-2",
+          variant === "success" ? "bg-emerald-100" : "bg-sky-100"
+        )}
         value={value}
         variant={variant}
       />
       <p className={cn(
-        "font-medium mt-1 sm:mt-2 text-sky-700",
+        "font-medium mt-1 xs:mt-1 sm:mt-2",
         colorByVariant[variant || "default"],
         sizeByVariant[size || "default"],
       )}>
