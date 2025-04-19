@@ -15,6 +15,13 @@ interface UserData {
   imageUrl: string | null;
 }
 
+interface Moderation {
+  isReported: boolean;
+  reportReason?: string;
+  reportedAt?: string;
+  reportedBy?: string;
+}
+
 interface Comment {
   id: string;
   text: string;
@@ -24,6 +31,7 @@ interface Comment {
   parentId: string | null;
   createdAt: string;
   updatedAt: string;
+  moderation?: Moderation;
   user?: UserData;
   replies: Comment[];
 }

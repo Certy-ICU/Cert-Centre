@@ -7,12 +7,27 @@ import formatDistanceToNow from "date-fns/formatDistanceToNow";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "react-hot-toast";
-import { Trash, Edit, Reply, User } from "lucide-react";
+import { Trash, Edit, Reply, User, Flag, AlertTriangle } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 interface UserData {
   id: string;
   name: string | null;
   imageUrl: string | null;
+}
+
+interface Moderation {
+  isReported: boolean;
+  reportReason?: string;
+  reportedAt?: string;
+  reportedBy?: string;
 }
 
 interface Comment {
@@ -24,6 +39,7 @@ interface Comment {
   parentId: string | null;
   createdAt: string;
   updatedAt: string;
+  moderation?: Moderation;
   user?: UserData;
   replies: Comment[];
 }
@@ -52,6 +68,8 @@ export const CommentDisplay = ({
   const [editText, setEditText] = useState(comment.text);
   const [replyText, setReplyText] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isReportDialogOpen, setIsReportDialogOpen] = useState(false);
+  const [reportReason, setReportReason] = useState("");
 
   const handleEdit = async () => {
     if (!editText.trim()) return;
@@ -94,153 +112,244 @@ export const CommentDisplay = ({
     }
   };
 
+  const handleReportComment = async () => {
+    if (!reportReason.trim()) {
+      toast.error("Please provide a reason for reporting");
+      return;
+    }
+
+    try {
+      setIsSubmitting(true);
+      await axios.post(
+        `/api/courses/${courseId}/chapters/${chapterId}/comments/${comment.id}/report`,
+        { reason: reportReason }
+      );
+      setIsReportDialogOpen(false);
+      setReportReason("");
+      toast.success("Comment reported successfully");
+      onRefresh();
+    } catch (error) {
+      const errorMessage = 
+        axios.isAxiosError(error) && error.response?.status === 400
+          ? error.response.data || "Failed to report comment"
+          : "Failed to report comment";
+      toast.error(errorMessage);
+      console.error(error);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   const isOwner = comment.userId === currentUserId;
   const maxDepth = 3; // Maximum nesting level for replies
   
   // Safely access user data
   const userName = comment.user?.name || `User ${comment.userId.substring(0, 4)}`;
   const userImage = comment.user?.imageUrl;
+  
+  // Check if comment is reported
+  const isReported = comment.moderation?.isReported === true;
 
   return (
-    <div 
-      className={`
-        border-l-2 pl-4 py-2
-        ${depth > 0 ? "ml-4" : ""}
-        ${depth === 0 ? "border-slate-300" : "border-slate-200"}
-      `}
-    >
-      <div className="flex items-start gap-2 mb-1">
-        <div className="h-8 w-8 rounded-full overflow-hidden bg-slate-200 flex-shrink-0">
-          {userImage ? (
-            <div className="h-full w-full relative">
-              <Image
-                src={userImage}
-                alt={userName}
-                fill
-                className="object-cover"
-              />
-            </div>
-          ) : (
-            <div className="flex items-center justify-center h-full w-full">
-              <User className="h-4 w-4 text-slate-500" />
-            </div>
-          )}
-        </div>
-        <div className="flex-1">
-          <div className="flex justify-between">
-            <div>
-              <span className="font-medium mr-2">{userName}</span>
-              <span className="text-xs text-slate-500">
-                {formatDistanceToNow(new Date(comment.createdAt), { addSuffix: true })}
-              </span>
-            </div>
-            {isOwner && (
-              <div className="flex space-x-2">
-                <Button 
-                  onClick={() => setIsEditing(!isEditing)} 
-                  variant="ghost" 
-                  size="sm"
-                >
-                  <Edit className="h-4 w-4" />
-                </Button>
-                <Button 
-                  onClick={() => onDelete(comment.id)} 
-                  variant="ghost" 
-                  size="sm"
-                >
-                  <Trash className="h-4 w-4" />
-                </Button>
+    <>
+      <div 
+        className={`
+          border-l-2 pl-4 py-2
+          ${depth > 0 ? "ml-4" : ""}
+          ${depth === 0 ? "border-slate-300 dark:border-slate-600" : "border-slate-200 dark:border-slate-700"}
+          ${isReported ? "bg-red-50 dark:bg-red-900/20" : ""}
+        `}
+      >
+        <div className="flex items-start gap-2 mb-1">
+          <div className="h-8 w-8 rounded-full overflow-hidden bg-slate-200 dark:bg-slate-700 flex-shrink-0">
+            {userImage ? (
+              <div className="h-full w-full relative">
+                <Image
+                  src={userImage}
+                  alt={userName}
+                  fill
+                  className="object-cover"
+                />
+              </div>
+            ) : (
+              <div className="flex items-center justify-center h-full w-full">
+                <User className="h-4 w-4 text-slate-500 dark:text-slate-400" />
               </div>
             )}
           </div>
-
-          {isEditing ? (
-            <div className="mt-2">
-              <Textarea
-                value={editText}
-                onChange={(e) => setEditText(e.target.value)}
-                className="mb-2"
-                disabled={isSubmitting}
-              />
+          <div className="flex-1">
+            <div className="flex justify-between">
+              <div>
+                <span className="font-medium mr-2 dark:text-white">{userName}</span>
+                <span className="text-xs text-slate-500 dark:text-slate-400">
+                  {formatDistanceToNow(new Date(comment.createdAt), { addSuffix: true })}
+                </span>
+                {isReported && (
+                  <span className="text-xs text-red-500 dark:text-red-400 ml-2 inline-flex items-center">
+                    <AlertTriangle className="h-3 w-3 mr-1" />
+                    Reported
+                  </span>
+                )}
+              </div>
               <div className="flex space-x-2">
-                <Button 
-                  onClick={handleEdit}
-                  size="sm"
-                  disabled={isSubmitting || !editText.trim()}
-                >
-                  Save
-                </Button>
-                <Button 
-                  onClick={() => setIsEditing(false)}
-                  variant="outline"
-                  size="sm"
-                >
-                  Cancel
-                </Button>
+                {isOwner ? (
+                  <>
+                    <Button 
+                      onClick={() => setIsEditing(!isEditing)} 
+                      variant="ghost" 
+                      size="sm"
+                    >
+                      <Edit className="h-4 w-4" />
+                    </Button>
+                    <Button 
+                      onClick={() => onDelete(comment.id)} 
+                      variant="ghost" 
+                      size="sm"
+                    >
+                      <Trash className="h-4 w-4" />
+                    </Button>
+                  </>
+                ) : (
+                  !isReported && (
+                    <Button 
+                      onClick={() => setIsReportDialogOpen(true)} 
+                      variant="ghost" 
+                      size="sm"
+                      className="text-red-500 hover:text-red-600 dark:text-red-400 dark:hover:text-red-300"
+                    >
+                      <Flag className="h-4 w-4" />
+                    </Button>
+                  )
+                )}
               </div>
             </div>
-          ) : (
-            <p className="mt-1">{comment.text}</p>
-          )}
 
-          {!isEditing && (
-            <Button 
-              onClick={() => setIsReplying(!isReplying)} 
-              variant="ghost" 
-              size="sm"
-              className="mt-1"
-            >
-              <Reply className="h-3 w-3 mr-1" />
-              Reply
-            </Button>
-          )}
-
-          {isReplying && (
-            <div className="mt-2">
-              <Textarea
-                value={replyText}
-                onChange={(e) => setReplyText(e.target.value)}
-                placeholder="Write a reply..."
-                className="mb-2"
-                disabled={isSubmitting}
-              />
-              <div className="flex space-x-2">
-                <Button 
-                  onClick={handleReply}
-                  size="sm"
-                  disabled={isSubmitting || !replyText.trim()}
-                >
-                  Post Reply
-                </Button>
-                <Button 
-                  onClick={() => setIsReplying(false)}
-                  variant="outline"
-                  size="sm"
-                >
-                  Cancel
-                </Button>
+            {isEditing ? (
+              <div className="mt-2">
+                <Textarea
+                  value={editText}
+                  onChange={(e) => setEditText(e.target.value)}
+                  className="mb-2 dark:bg-slate-800 dark:border-slate-700"
+                  disabled={isSubmitting}
+                />
+                <div className="flex space-x-2">
+                  <Button 
+                    onClick={handleEdit}
+                    size="sm"
+                    disabled={isSubmitting || !editText.trim()}
+                  >
+                    Save
+                  </Button>
+                  <Button 
+                    onClick={() => setIsEditing(false)}
+                    variant="outline"
+                    size="sm"
+                    className="dark:border-slate-700"
+                  >
+                    Cancel
+                  </Button>
+                </div>
               </div>
-            </div>
-          )}
+            ) : (
+              <div className="mt-1">
+                <p className="text-sm dark:text-slate-300">{comment.text}</p>
+              </div>
+            )}
+
+            {!isEditing && !isReplying && depth < maxDepth && (
+              <Button 
+                onClick={() => setIsReplying(true)} 
+                variant="ghost" 
+                size="sm" 
+                className="mt-2 text-xs dark:text-slate-300"
+              >
+                <Reply className="h-3 w-3 mr-1" />
+                Reply
+              </Button>
+            )}
+
+            {isReplying && (
+              <div className="mt-2">
+                <Textarea
+                  value={replyText}
+                  onChange={(e) => setReplyText(e.target.value)}
+                  placeholder="Write a reply..."
+                  className="mb-2 dark:bg-slate-800 dark:border-slate-700"
+                  disabled={isSubmitting}
+                />
+                <div className="flex space-x-2">
+                  <Button 
+                    onClick={handleReply}
+                    size="sm"
+                    disabled={isSubmitting || !replyText.trim()}
+                  >
+                    Post Reply
+                  </Button>
+                  <Button 
+                    onClick={() => setIsReplying(false)}
+                    variant="outline"
+                    size="sm"
+                    className="dark:border-slate-700"
+                  >
+                    Cancel
+                  </Button>
+                </div>
+              </div>
+            )}
+
+            {comment.replies && comment.replies.length > 0 && (
+              <div className="mt-3 space-y-3">
+                {comment.replies.map((reply) => (
+                  <CommentDisplay
+                    key={reply.id}
+                    comment={reply}
+                    courseId={courseId}
+                    chapterId={chapterId}
+                    currentUserId={currentUserId}
+                    onDelete={onDelete}
+                    onRefresh={onRefresh}
+                    depth={depth + 1}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
-      {comment.replies && comment.replies.length > 0 && depth < maxDepth && (
-        <div className="mt-2 space-y-2">
-          {comment.replies.map((reply) => (
-            <CommentDisplay
-              key={reply.id}
-              comment={reply}
-              courseId={courseId}
-              chapterId={chapterId}
-              currentUserId={currentUserId}
-              onDelete={onDelete}
-              onRefresh={onRefresh}
-              depth={depth + 1}
-            />
-          ))}
-        </div>
-      )}
-    </div>
+      <Dialog open={isReportDialogOpen} onOpenChange={setIsReportDialogOpen}>
+        <DialogContent className="dark:bg-slate-800 dark:border-slate-700">
+          <DialogHeader>
+            <DialogTitle className="dark:text-white">Report Comment</DialogTitle>
+            <DialogDescription className="dark:text-slate-400">
+              Please provide a reason for reporting this comment. Reported comments will be reviewed by moderators.
+            </DialogDescription>
+          </DialogHeader>
+          <Textarea
+            value={reportReason}
+            onChange={(e) => setReportReason(e.target.value)}
+            placeholder="Why are you reporting this comment?"
+            className="mt-4 dark:bg-slate-700 dark:border-slate-600"
+            disabled={isSubmitting}
+          />
+          <DialogFooter>
+            <Button 
+              variant="outline" 
+              onClick={() => setIsReportDialogOpen(false)}
+              className="dark:border-slate-600 dark:text-slate-300"
+            >
+              Cancel
+            </Button>
+            <Button 
+              onClick={handleReportComment}
+              disabled={isSubmitting || !reportReason.trim()}
+              className="bg-red-500 hover:bg-red-600 dark:bg-red-700 dark:hover:bg-red-600"
+            >
+              Report Comment
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }; 

@@ -1,117 +1,330 @@
-# Implementing Social Features (Discussions/Comments)
+# Social Features Implementation Guide
 
-This guide covers adding discussion forums or comment sections to courses or chapters within the LMS.
+This documentation covers the implementation of social features in the LMS platform, including comments, moderation, and social sharing capabilities.
 
-## 1. Data Model Changes (Prisma)
+## Table of Contents
+1. [Comment System Implementation](#1-comment-system-implementation)
+2. [API Endpoints for Comments](#2-api-endpoints-for-comments)
+3. [Frontend Components](#3-frontend-components)
+4. [Authentication and Authorization](#4-authentication-and-authorization)
+5. [Moderation System](#5-moderation-system)
+6. [Social Sharing Integration](#6-social-sharing-integration)
+7. [Testing](#7-testing)
 
-- **Define Models**: Add new models to `prisma/schema.prisma` for discussions/comments. Choose one approach:
-    - **A) Course-Level Discussions**: A single discussion thread per course.
-    - **B) Chapter-Level Comments**: Comment threads per chapter.
-    - **C) General Forum**: Separate forum structure potentially linked to courses.
+## 1. Comment System Implementation
 
-    Let's assume **Chapter-Level Comments (B)** for this example:
+### Data Model
 
-  ```prisma
-  // prisma/schema.prisma
+The platform uses Prisma ORM with the following data model for comments:
 
-  model Chapter {
-    // ... existing fields
-    comments Comment[] // Add relation to comments
+```prisma
+// prisma/schema.prisma
+
+model Chapter {
+  // ... existing fields
+  comments Comment[] // Relation to comments
+}
+
+model Comment {
+  id        String   @id @default(uuid())
+  text      String   @db.Text
+  userId    String   // ID from Clerk
+  courseId  String
+  chapterId String
+  course    Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  chapter   Chapter  @relation(fields: [chapterId], references: [id], onDelete: Cascade)
+
+  parentId  String?   // For threaded replies
+  parent    Comment?  @relation("Replies", fields: [parentId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  replies   Comment[] @relation("Replies")
+
+  moderation Json?    // For storing moderation data 
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([chapterId])
+  @@index([courseId])
+  @@index([userId])
+  @@index([parentId])
+}
+
+model User {
+  id       String @id // Clerk User ID
+  name     String?
+  imageUrl String?
+  // ... other fields
+}
+```
+
+### Setting Up Migrations
+
+After adding these models, apply the Prisma migrations:
+
+```bash
+npx prisma generate
+npx prisma migrate dev --name add_comments_and_moderation
+```
+
+## 2. API Endpoints for Comments
+
+The platform implements the following API endpoints for the comment system:
+
+### Comment Management
+
+- **Fetch Comments**: `GET /api/courses/:courseId/chapters/:chapterId/comments`
+  - Optional query parameter: `parentId` for fetching replies
+  - Includes user information and nested replies
+  
+- **Create Comment**: `POST /api/courses/:courseId/chapters/:chapterId/comments`
+  ```typescript
+  // Request body
+  {
+    "text": "Comment content",
+    "parentId": "optional-parent-comment-id"
   }
-
-  model Comment {
-    id        String   @id @default(uuid())
-    text      String   @db.Text
-    userId    String   // ID from Clerk
-    chapterId String
-    chapter   Chapter  @relation(fields: [chapterId], references: [id], onDelete: Cascade)
-
-    parentId  String?   // For threaded replies
-    parent    Comment?  @relation("Replies", fields: [parentId], references: [id], onDelete: Cascade, onUpdate: NoAction)
-    replies   Comment[] @relation("Replies")
-
-    createdAt DateTime @default(now())
-    updatedAt DateTime @updatedAt
-
-    @@index([chapterId])
-    @@index([userId])
-    @@index([parentId])
+  ```
+  
+- **Update Comment**: `PATCH /api/courses/:courseId/chapters/:chapterId/comments/:commentId`
+  ```typescript
+  // Request body
+  {
+    "text": "Updated comment content"
   }
+  ```
+  
+- **Delete Comment**: `DELETE /api/courses/:courseId/chapters/:chapterId/comments/:commentId`
 
-  // Optional: Add user details (consider privacy)
-  // If you need to display user names/avatars with comments often,
-  // consider syncing minimal public Clerk user data to a local User model.
-  // model User {
-  //   id String @id // Clerk User ID
-  //   username String?
-  //   imageUrl String?
-  //   // ... other fields if needed
-  // }
+### Comment Moderation
+
+- **Report Comment**: `POST /api/courses/:courseId/chapters/:chapterId/comments/:commentId/report`
+  ```typescript
+  // Request body
+  {
+    "reason": "Reason for reporting this comment"
+  }
   ```
 
-- **Apply Migrations**: Run `npx prisma generate` and `npx prisma db push` (or `migrate dev`).
+## 3. Frontend Components
 
-## 2. API Endpoints
+### Comment Components
 
-Create API routes (e.g., within `app/api/courses/[courseId]/chapters/[chapterId]/comments`) to handle:
+The platform implements several components for the comment system:
 
-- **Fetching Comments**: `GET /api/.../comments?parentId=[parentId]`
-    - Fetch comments for a specific chapter, potentially filtering by `parentId` for replies.
-    - Include user information (either fetching from Clerk server-side based on `userId` or from a synced local `User` table).
-    - Implement pagination.
-- **Creating Comments**: `POST /api/.../comments`
-    - Takes `text` and potentially `parentId` in the request body.
-    - Validates user authentication (using Clerk).
-    - Creates a new `Comment` record in the database.
-    - Perform validation (e.g., non-empty text).
-- **Updating Comments**: `PATCH /api/.../comments/[commentId]`
-    - Takes `text` in the body.
-    - Validates that the logged-in user is the owner of the comment.
-    - Updates the comment text.
-- **Deleting Comments**: `DELETE /api/.../comments/[commentId]`
-    - Validates user ownership or teacher/admin permissions.
-    - Deletes the comment (consider soft delete by adding an `isDeleted` flag if needed).
+- **`<CommentSection>`** - The main container component for comments:
+  ```tsx
+  <CommentSection 
+    courseId={courseId}
+    chapterId={chapterId}
+  />
+  ```
 
-## 3. Frontend Implementation
+- **`<CommentDisplay>`** - Component for displaying individual comments with nested replies:
+  ```tsx
+  <CommentDisplay
+    comment={comment}
+    courseId={courseId}
+    chapterId={chapterId}
+    currentUserId={userId}
+    onDelete={handleDelete}
+    onRefresh={fetchComments}
+    depth={0}
+  />
+  ```
 
-- **Comment Section Component**: Create a reusable React component (`<CommentSection>`) to display comments and the input form.
-    - Place this component within the relevant chapter view page (e.g., `app/(course)/courses/[courseId]/chapters/[chapterId]/page.tsx`).
-- **Displaying Comments (`<CommentDisplay>`)**: Component to render a single comment and its replies recursively.
-    - Fetch comments using a server component or a client component with data fetching (e.g., SWR or React Query - see Performance Optimization guide).
-    - Display comment text, author (fetch user details from Clerk or local cache), timestamp.
-    - Include buttons for Reply, Edit, Delete (conditionally rendered based on user permissions).
-- **Comment Input Form (`<CommentForm>`)**: Component with a text area and submit button.
-    - Handles submitting new comments or replies via API calls.
-    - Includes state management for the input text.
-    - Provide user feedback (loading states, error messages).
-- **User Experience**: 
-    - Implement loading states while fetching/posting.
-    - Add pagination or a "Load More" button for long threads.
-    - Consider real-time updates (see Real-time Collaboration guide) for new comments.
+- **Comment Creation Form** - Within the `CommentSection` component, allowing users to add new comments or replies.
+
+### Social Sharing Components
+
+The platform includes a reusable `SocialShare` component that integrates with the `react-share` library:
+
+```tsx
+// components/social-share.tsx
+"use client";
+
+import { 
+  FacebookShareButton, TwitterShareButton, 
+  LinkedinShareButton, WhatsappShareButton,
+  FacebookIcon, TwitterIcon, 
+  LinkedinIcon, WhatsappIcon
+} from "react-share";
+
+interface SocialShareProps {
+  url: string;
+  title: string;
+  description?: string;
+  className?: string;
+  iconSize?: number;
+  round?: boolean;
+}
+
+export const SocialShare = ({
+  url,
+  title,
+  description = "",
+  className = "",
+  iconSize = 32,
+  round = true
+}: SocialShareProps) => {
+  // Make sure we have the full URL with domain name
+  const fullUrl = url.startsWith('http') 
+    ? url 
+    : `${process.env.NEXT_PUBLIC_APP_URL || 'https://localhost:3000'}${url}`;
+  
+  return (
+    <div className={`flex items-center gap-2 ${className}`}>
+      <span className="text-sm font-medium text-slate-500 dark:text-slate-400 mr-1">
+        Share:
+      </span>
+      
+      <FacebookShareButton url={fullUrl} quote={title}>
+        <FacebookIcon size={iconSize} round={round} />
+      </FacebookShareButton>
+      
+      <TwitterShareButton url={fullUrl} title={title}>
+        <TwitterIcon size={iconSize} round={round} />
+      </TwitterShareButton>
+      
+      <LinkedinShareButton url={fullUrl} title={title} summary={description}>
+        <LinkedinIcon size={iconSize} round={round} />
+      </LinkedinShareButton>
+      
+      <WhatsappShareButton url={fullUrl} title={title}>
+        <WhatsappIcon size={iconSize} round={round} />
+      </WhatsappShareButton>
+    </div>
+  );
+};
+```
+
+This component is integrated in:
+
+1. **Course Cards** - For sharing individual courses:
+   ```tsx
+   <SocialShare 
+     url={courseUrl}
+     title={`Check out this course: ${title}`}
+     description={`A course about ${category} with ${chaptersLength} chapters`}
+     iconSize={24}
+     className="justify-center"
+   />
+   ```
+
+2. **Chapter Pages** - For sharing specific chapters:
+   ```tsx
+   <SocialShare 
+     url={chapterUrl}
+     title={`${course.title} - ${chapter.title}`}
+     description={`Check out this chapter from ${course.title}`}
+     iconSize={24}
+   />
+   ```
 
 ## 4. Authentication and Authorization
 
-- **Clerk Integration**: Use Clerk's helpers (`auth()`, `currentUser()`, `<SignedIn>`, `<SignedOut>`) to ensure only logged-in users can post comments.
-- **Permissions**: Implement logic in API routes and frontend components:
-    - Users can edit/delete their *own* comments.
-    - Course teachers/admins might need permissions to moderate (delete any comment).
-    - Store the `userId` (from Clerk) with each comment to check ownership.
+The platform uses Clerk for authentication and includes the following authorization rules:
 
-## 5. Moderation (Optional but Recommended)
+- **Comment Creation**: Only authenticated users can create comments
+- **Comment Editing/Deletion**: Users can only edit/delete their own comments
+- **Comment Moderation**: Course owners/teachers can review and moderate all comments in their courses
 
-- **Reporting**: Add a feature for users to report inappropriate comments.
-    - Add a `Report` model or a flag on the `Comment` model.
-    - Create an admin/teacher interface to review reported comments.
-- **Content Filtering**: Implement basic profanity filtering if necessary.
+Implementation examples:
 
-## 6. Social Sharing
+```typescript
+// Server-side auth check example
+const { userId } = auth();
+if (!userId) {
+  return new NextResponse("Unauthorized", { status: 401 });
+}
 
-- **Add Sharing Buttons**: Integrate libraries like `react-share` to add buttons for sharing course links (not individual comments) on social media platforms.
-    - Place these buttons on the main course page or search results.
+// Client-side permission check example
+const isOwner = comment.userId === currentUserId;
+```
+
+## 5. Moderation System
+
+The platform includes a moderation system for comments:
+
+### Moderation Data Structure
+
+```typescript
+// Moderation data stored in the Comment model's moderation field
+interface Moderation {
+  isReported: boolean;
+  reportReason?: string;
+  reportedAt?: string;
+  reportedBy?: string;
+}
+```
+
+### Reporting Interface
+
+1. Users can report inappropriate comments via a flag icon
+2. A modal dialog collects the reason for the report
+3. Report data is stored in the comment's moderation field
+4. Teachers receive notifications of reported comments
+
+### Moderation Dashboard
+
+Teachers can review reported comments in a dedicated dashboard at:
+`/teacher/reported-comments`
+
+This dashboard includes:
+- List of reported comments in their courses
+- Options to dismiss reports or delete comments
+- Display of original comment content and report reason
+
+## 6. Social Sharing Integration
+
+The platform integrates social sharing capabilities:
+
+### Installation
+
+```bash
+npm install react-share
+```
+
+### Implementation
+
+The `SocialShare` component allows sharing content to:
+- Facebook
+- Twitter
+- LinkedIn
+- WhatsApp
+
+### Integration Points
+
+Social sharing buttons are integrated at key points in the application:
+- Course cards in search results/listings
+- Individual chapter pages
+
+This enables users to easily share course content on social media platforms, enhancing the platform's reach and engagement.
 
 ## 7. Testing
 
-- Test fetching, creating, editing, and deleting comments and replies.
-- Verify permissions logic (ownership, moderation).
-- Test pagination and loading states.
-- Test different user roles (student, teacher, admin). 
+When testing the social features, cover the following areas:
+
+### Comment System Testing
+
+- **Creation**: Test adding comments and replies
+- **Editing**: Test modifying your own comments
+- **Deletion**: Test removing your own comments
+- **Permissions**: Verify that users cannot edit/delete others' comments
+- **Nested Replies**: Test the display and functionality of threaded discussions
+
+### Moderation Testing
+
+- **Reporting**: Test the report flow as a student
+- **Review**: Test the moderation dashboard as a teacher
+- **Actions**: Test dismissing reports and deleting reported comments
+
+### Social Sharing Testing
+
+- **URL Generation**: Verify that correct URLs are generated for sharing
+- **Preview**: Test social media previews with OpenGraph tags
+- **Cross-Platform**: Test sharing on different platforms
+
+### Cross-Browser and Responsive Testing
+
+- Test functionality on different browsers
+- Verify responsive design on mobile devices 

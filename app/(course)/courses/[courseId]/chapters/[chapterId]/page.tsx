@@ -6,6 +6,7 @@ import { getChapter } from "@/actions/get-chapter";
 import { Banner } from "@/components/banner";
 import { Separator } from "@/components/ui/separator";
 import { Preview } from "@/components/preview";
+import { SocialShare } from "@/components/social-share";
 
 import { VideoPlayer } from "./_components/video-player";
 import { CourseEnrollButton } from "./_components/course-enroll-button";
@@ -46,6 +47,9 @@ const ChapterIdPage = async ({
   const isLocked = !chapter.isFree && !purchase;
   const completeOnEnd = !!purchase && !userProgress?.isCompleted;
 
+  // Create the full chapter URL for sharing
+  const chapterUrl = `/courses/${params.courseId}/chapters/${params.chapterId}`;
+
   return ( 
     <div>
       {userProgress?.isCompleted && (
@@ -73,23 +77,33 @@ const ChapterIdPage = async ({
           />
         </div>
         <div>
-          <div className="p-4 flex flex-col md:flex-row items-center justify-between">
-            <h2 className="text-2xl font-semibold mb-2">
-              {chapter.title}
-            </h2>
-            {purchase ? (
-              <CourseProgressButton
-                chapterId={params.chapterId}
-                courseId={params.courseId}
-                nextChapterId={nextChapter?.id}
-                isCompleted={!!userProgress?.isCompleted}
+          <div className="p-4 flex flex-col gap-2">
+            <div className="flex flex-col md:flex-row items-start md:items-center justify-between">
+              <h2 className="text-2xl font-semibold mb-2 md:mb-0">
+                {chapter.title}
+              </h2>
+              {purchase ? (
+                <CourseProgressButton
+                  chapterId={params.chapterId}
+                  courseId={params.courseId}
+                  nextChapterId={nextChapter?.id}
+                  isCompleted={!!userProgress?.isCompleted}
+                />
+              ) : (
+                <CourseEnrollButton
+                  courseId={params.courseId}
+                  price={course.price!}
+                />
+              )}
+            </div>
+            <div className="mt-1">
+              <SocialShare 
+                url={chapterUrl}
+                title={`${course.title} - ${chapter.title}`}
+                description={`Check out this chapter from ${course.title}`}
+                iconSize={24}
               />
-            ) : (
-              <CourseEnrollButton
-                courseId={params.courseId}
-                price={course.price!}
-              />
-            )}
+            </div>
           </div>
           <Separator />
           <div>
