@@ -2,7 +2,8 @@ import { auth } from "@clerk/nextjs";
 import { NextResponse } from "next/server";
 
 import { db } from "@/lib/db";
-import { awardPoints, checkAndAwardBadge } from "@/lib/gamification-service";
+import { awardPoints } from "@/lib/gamification-service";
+import { checkAndAwardCourseCompletionBadges } from "@/lib/badge-service";
 
 export async function PUT(
   req: Request,
@@ -66,8 +67,9 @@ export async function PUT(
         // Award bonus points for completing the entire course
         await awardPoints(userId, 50);
         
-        // Award badge for completing course
-        await checkAndAwardBadge(userId, "First Course Completed");
+        // Award tiered badges for course completion
+        // This checks how many courses the user has completed total and awards badges accordingly
+        await checkAndAwardCourseCompletionBadges(userId);
       }
     }
 

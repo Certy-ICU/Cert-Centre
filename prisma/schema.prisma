@@ -187,10 +187,24 @@ model Comment {
 model UserProfile {
   userId    String @id // Clerk User ID
   points    Int    @default(0)
+  // level     Int    @default(1) // Optional
+
+  // Optional: If syncing Clerk data
   username  String?
   imageUrl  String?
 
   earnedBadges UserBadge[]
+
+  // For leaderboard
+  leaderboardEntries LeaderboardEntry[]
+  
+  // Streak tracking
+  currentStreak     Int       @default(0)
+  longestStreak     Int       @default(0)
+  lastLoginDate     DateTime?
+  
+  // Featured badges as JSON
+  featuredBadges String? @db.Text // Stored as JSON string: ["badgeId1", "badgeId2"]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -202,6 +216,7 @@ model Badge {
   description String
   iconUrl     String // URL to the badge icon
   criteria    String // Description of how to earn it (for display)
+  tier        String      @default("bronze") // "bronze", "silver", "gold"
 
   users UserBadge[]
 
@@ -215,9 +230,33 @@ model UserBadge {
   badgeId   String
   badge     Badge    @relation(fields: [badgeId], references: [id], onDelete: Cascade)
 
+  // Customization fields
+  isFavorite    Boolean   @default(false)
+  displayColor  String?   // Optional custom color
+
   earnedAt DateTime @default(now())
 
   @@unique([userId, badgeId]) // User can earn each badge only once
   @@index([userId])
   @@index([badgeId])
+}
+
+// Add to track leaderboard entries
+model LeaderboardEntry {
+  id            String      @id @default(uuid())
+  userId        String
+  user          UserProfile @relation(fields: [userId], references: [userId], onDelete: Cascade)
+  points        Int
+  period        String      // "weekly", "monthly", "all-time"
+  weekNumber    Int?        // ISO week number (1-53)
+  monthNumber   Int?        // Month number (1-12)
+  year          Int         // Year
+  rank          Int?        // Optional stored rank
+  
+  createdAt     DateTime    @default(now())
+
+  @@unique([userId, period, weekNumber, monthNumber, year])
+  @@index([period, year, weekNumber])
+  @@index([period, year, monthNumber])
+  @@index([userId])
 }

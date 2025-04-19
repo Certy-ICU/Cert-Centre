@@ -5,7 +5,7 @@ This guide outlines how to add basic offline support and PWA capabilities to the
 ## 1. Install Dependencies
 
 ```bash
-npm install next-pwa
+pnpm install next-pwa
 # Or if using Yarn
 # yarn add next-pwa
 ```

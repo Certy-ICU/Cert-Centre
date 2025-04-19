@@ -6,6 +6,7 @@ import { ToastProvider } from '@/components/providers/toaster-provider'
 import { ConfettiProvider } from '@/components/providers/confetti-provider'
 import QueryProvider from '@/components/providers/query-provider'
 import { ThemeProvider } from '@/components/providers/theme-provider'
+import { BadgeAchievementProvider } from '@/providers/badge-achievement-provider'
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -31,9 +32,11 @@ export default function RootLayout({
             disableTransitionOnChange
           >
             <QueryProvider>
-              <ConfettiProvider />
-              <ToastProvider />
-              {children}
+              <BadgeAchievementProvider>
+                <ConfettiProvider />
+                <ToastProvider />
+                {children}
+              </BadgeAchievementProvider>
             </QueryProvider>
           </ThemeProvider>
         </body>

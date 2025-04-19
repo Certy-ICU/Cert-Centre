@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs";
-import { syncCurrentUser } from "@/lib/user-service";
+import { syncUserProfile } from "@/lib/gamification-service";
 
 // POST endpoint to sync user data from Clerk to our database
 export async function POST() {
@@ -11,15 +11,13 @@ export async function POST() {
       return new NextResponse("Unauthorized", { status: 401 });
     }
     
-    // Sync user data
-    const user = await syncCurrentUser();
+    const profile = await syncUserProfile(userId);
     
-    if (!user) {
-      return new NextResponse("Failed to sync user", { status: 500 });
+    if (!profile) {
+      return new NextResponse("Failed to sync profile", { status: 500 });
     }
     
-    // Return minimal response for performance
-    return new NextResponse(null, { status: 204 });
+    return NextResponse.json(profile);
   } catch (error) {
     console.error("[USER_SYNC]", error);
     return new NextResponse("Internal Error", { status: 500 });
