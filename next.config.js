@@ -1,9 +1,14 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  experimental: {
+    serverActions: true,
+  },
   images: {
     domains: [
       "utfs.io",
-      "picsum.photos"
+            "picsum.photos",
+      "img.clerk.com",
+      "images.clerk.dev"
     ]
   }
 }

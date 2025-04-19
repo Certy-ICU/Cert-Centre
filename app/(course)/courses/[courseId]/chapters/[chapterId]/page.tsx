@@ -11,6 +11,7 @@ import { VideoPlayer } from "./_components/video-player";
 import { CourseEnrollButton } from "./_components/course-enroll-button";
 import { CourseProgressButton } from "./_components/course-progress-button";
 import { CourseCompletion } from "./_components/course-completion";
+import { CommentSection } from "./_components/CommentSection";
 
 const ChapterIdPage = async ({
   params
@@ -125,6 +126,13 @@ const ChapterIdPage = async ({
               />
             </div>
           )}
+          <Separator />
+          <div className="p-4">
+            <CommentSection
+              courseId={params.courseId}
+              chapterId={params.chapterId}
+            />
+          </div>
         </div>
       </div>
     </div>

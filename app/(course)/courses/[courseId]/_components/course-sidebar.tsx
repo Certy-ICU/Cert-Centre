@@ -1,6 +1,8 @@
 import { auth } from "@clerk/nextjs";
 import { Chapter, Course, UserProgress } from "@prisma/client"
 import { redirect } from "next/navigation";
+import Link from "next/link";
+import { MessageSquare } from "lucide-react";
 
 import { db } from "@/lib/db";
 import { CourseProgress } from "@/components/course-progress";
@@ -61,6 +63,14 @@ export const CourseSidebar = async ({
             isLocked={!chapter.isFree && !purchase}
           />
         ))}
+        
+        <Link
+          href={`/courses/${course.id}/discussions`}
+          className="p-4 flex items-center text-sm font-medium transition-colors bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700"
+        >
+          <MessageSquare className="h-5 w-5 mr-2 text-slate-500 dark:text-slate-400" />
+          <span>Discussions</span>
+        </Link>
       </div>
     </div>
   )
