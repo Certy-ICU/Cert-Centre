@@ -51,3 +51,41 @@ export async function POST(
     return new NextResponse("Internal Error", { status: 500 });
   }
 }
+
+export async function GET(
+  req: Request,
+  { params }: { params: { courseId: string } }
+) {
+  try {
+    const { userId } = auth();
+
+    if (!userId) {
+      return new NextResponse("Unauthorized", { status: 401 });
+    }
+
+    const course = await db.course.findUnique({
+      where: {
+        id: params.courseId,
+      },
+      include: {
+        chapters: {
+          where: {
+            isPublished: true,
+          },
+          orderBy: {
+            position: "asc"
+          }
+        }
+      }
+    });
+
+    if (!course) {
+      return new NextResponse("Course not found", { status: 404 });
+    }
+
+    return NextResponse.json(course.chapters);
+  } catch (error) {
+    console.error("[GET_COURSE_CHAPTERS]", error);
+    return new NextResponse("Internal Error", { status: 500 });
+  }
+}

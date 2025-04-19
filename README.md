@@ -1,66 +1,82 @@
-# Learning Management System (LMS) Repository
+# Cert Centre - Learning Management System (LMS)
 
-Welcome to the Learning Management System (LMS) repository! This powerful platform allows you to create, manage, and participate in courses with ease. Whether you're a student looking to expand your knowledge or a teacher eager to share your expertise, our LMS has got you covered.
+<div align="center">
+  <img src="public/cert-centre-logo.png" alt="Cert Centre Logo" width="200"/>
+  <h3>Comprehensive Learning Management Solution</h3>
+</div>
 
-## Key Features
+## 📚 Overview
 
-### Browse & Filter Courses
+Cert Centre is a modern Learning Management System (LMS) built with Next.js 13+ leveraging the App Router architecture. This platform enables educators to create, manage and sell courses while providing students with an intuitive interface to discover, purchase, and participate in educational content.
 
-Easily search and filter through a wide range of courses to find the perfect one for your needs.
+## ✨ Key Features
 
-### Purchase Courses using Stripe
+### For Students
+- **Course Discovery** - Browse, search, and filter courses with advanced filtering options
+- **Secure Payments** - Purchase courses via integrated Stripe payment processing
+- **Interactive Learning** - Track progress, mark chapters as completed, and view completion stats
+- **Multimedia Content** - Access video lessons with adaptive playback using Mux's HLS streaming
+- **User Dashboard** - Monitor enrolled courses and progress from a centralized student portal
 
-Seamlessly pay for courses using Stripe, ensuring a secure and convenient payment process.
+### For Educators
+- **Course Management** - Create, edit, and publish courses with an intuitive control panel
+- **Chapter Organization** - Create and reorder chapters via drag-and-drop interface
+- **Rich Content Editor** - Enhance chapter descriptions with a full-featured rich text editor
+- **File Management** - Upload thumbnails, attachments, and videos with UploadThing integration
+- **Analytics** - Track student enrollment and engagement metrics
 
-### Track Progress
+## 🛠️ Tech Stack
 
-Mark chapters as completed or uncompleted, and keep track of your progress within each course.
+### Frontend
+- **Framework**: Next.js 13 (App Router)
+- **UI Components**: Radix UI, Shadcn UI components
+- **Styling**: Tailwind CSS, tailwindcss-animate
+- **State Management**: Zustand
+- **Forms**: React Hook Form with Zod validation
+- **Media**: Mux for video streaming, React Quill for rich text editing
 
-### Student Dashboard
+### Backend
+- **API Routes**: Next.js API routes with server components
+- **Authentication**: Clerk
+- **Database**: MySQL via PlanetScale
+- **ORM**: Prisma
+- **Payment Processing**: Stripe
+- **File Storage**: UploadThing
 
-Access a user-friendly dashboard that provides an overview of your enrolled courses and progress.
+## 🔧 Prerequisites
 
-### Teacher Mode
+- Node.js v18.x.x or higher
+- npm or pnpm package manager
+- MySQL database or PlanetScale account
+- Accounts for third-party services:
+  - Clerk (authentication)
+  - UploadThing (file uploads)
+  - Mux (video processing)
+  - Stripe (payments)
 
-Empower educators with the ability to create new courses, chapters, and manage course content.
+## 🚀 Installation
 
-### Create & Reorder Chapters
-
-Effortlessly create new chapters and reorder them using a simple drag-and-drop interface.
-
-### Multimedia Support
-
-Upload thumbnails, attachments, and videos using UploadThing. Video processing is handled by Mux, and you can enjoy HLS video playback using Mux's video player.
-
-### Rich Text Editor
-
-Enhance your chapter descriptions with a rich text editor, making course content engaging and informative.
-
-### Secure Authentication
-
-User authentication is handled by Clerk, ensuring a secure and user-friendly login and registration process.
-
-### Robust Database
-
-Utilize Prisma and a MySQL database hosted on PlanetScale for efficient and reliable data management.
-
-## Prerequisites
-
-Before getting started, ensure you have the following prerequisites installed:
-
-- Node version 18.x.x
-
-## Installation
-
-1. Install the required packages:
+1. **Clone the repository**
 
    ```bash
-   npm i
+   git clone https://github.com/yourusername/cert-centre.git
+   cd cert-centre
    ```
 
-2. Set up your environment variables by creating a `.env` file in the root directory of the project. Populate it with the following values:
+2. **Install dependencies**
+
+   ```bash
+   npm install
+   # or with pnpm
+   pnpm install
+   ```
+
+3. **Set up environment variables**
+
+   Create a `.env` file in the root directory with the following variables:
 
    ```env
+   # Authentication - Clerk
    NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=
    CLERK_SECRET_KEY=
    NEXT_PUBLIC_CLERK_SIGN_IN_URL=
@@ -68,43 +84,115 @@ Before getting started, ensure you have the following prerequisites installed:
    NEXT_PUBLIC_CLERK_AFTER_SIGN_IN_URL=
    NEXT_PUBLIC_CLERK_AFTER_SIGN_UP_URL=
    
+   # Database - PlanetScale/MySQL
    DATABASE_URL=
    
+   # File Upload - UploadThing
    UPLOADTHING_SECRET=
    UPLOADTHING_APP_ID=
    
+   # Video Processing - Mux
    MUX_TOKEN_ID=
    MUX_TOKEN_SECRET=
    
+   # Payments - Stripe
    STRIPE_API_KEY=
    NEXT_PUBLIC_APP_URL=http://localhost:3000
    STRIPE_WEBHOOK_SECRET=
    
+   # Application
    NEXT_PUBLIC_TEACHER_ID=
    ```
 
-3. Set up Prisma and your MySQL database on PlanetScale:
+4. **Set up the database**
 
-   - Generate Prisma client:
+   ```bash
+   # Generate Prisma client
+   npx prisma generate
+   
+   # Push schema to your database
+   npx prisma db push
+   ```
 
-     ```bash
-     npx prisma generate
-     ```
-
-   - Push the database schema:
-
-     ```bash
-     npx prisma db push
-     ```
-
-4. Start the application:
+5. **Start the development server**
 
    ```bash
    npm run dev
+   # or with pnpm
+   pnpm dev
    ```
 
-## Get Started
+6. **Access the application**
 
-With these easy setup steps, you're ready to start using our Learning Management System. Dive into the world of education, explore courses, create your own content, and enjoy a seamless learning experience!
+   Open [http://localhost:3000](http://localhost:3000) in your browser.
 
-For any questions, feedback, or issues, please feel free to reach out to our support team. Happy learning! 📚🚀
+## 🗂️ Project Structure
+
+```
+cert-centre/
+├── actions/            # Server actions for data mutations
+├── app/                # Next.js App Router structure
+│   ├── (auth)/         # Authentication routes
+│   ├── (course)/       # Course view/consumption routes
+│   ├── (dashboard)/    # User dashboard routes
+│   ├── api/            # API endpoints
+├── components/         # Reusable UI components
+├── hooks/              # Custom React hooks
+├── lib/                # Utility functions and configurations
+├── prisma/             # Database schema and migrations
+│   └── schema.prisma   # Prisma schema definition
+├── public/             # Static assets
+└── scripts/            # Utility scripts
+```
+
+## 📡 API Documentation
+
+The API follows RESTful principles with the following main endpoints:
+
+- `/api/courses` - Course management endpoints
+- `/api/chapters` - Chapter and content management
+- `/api/uploadthing` - File upload endpoints
+- `/api/webhook` - Stripe webhook endpoint
+
+For detailed API documentation, refer to the [API Documentation](docs/improvements/api-documentation.md) guide.
+
+## 🛣️ Roadmap
+
+- [ ] Enhanced analytics dashboard for educators
+- [ ] Student discussion forums for each course
+- [ ] Quiz and assessment functionality
+- [ ] Certificate generation upon course completion
+- [ ] Mobile application support
+
+## 🤝 Contributing
+
+We welcome contributions to the Cert Centre project! Please follow these steps:
+
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add some amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
+
+## 📄 License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## 🙏 Acknowledgements
+
+- [Next.js](https://nextjs.org/) - The React Framework
+- [Clerk](https://clerk.dev/) - Authentication and user management
+- [Prisma](https://prisma.io/) - ORM
+- [PlanetScale](https://planetscale.com/) - Database platform
+- [Tailwind CSS](https://tailwindcss.com/) - Styling
+- [Stripe](https://stripe.com/) - Payment processing
+- [Mux](https://mux.com/) - Video hosting and streaming
+- [UploadThing](https://uploadthing.com/) - File uploads
+
+## 📬 Contact
+
+For questions, support, or feedback, please contact:
+
+- Email: support@certcentre.com
+- Twitter: [@CertCentre](https://twitter.com/certcentre)
+- Website: [www.certcentre.com](https://www.certcentre.com)

@@ -63,6 +63,19 @@ export async function POST(
       }
     });
 
+    if (stripeCustomer) {
+      try {
+        await stripe.customers.retrieve(stripeCustomer.stripeCustomerId);
+      } catch (stripeError) {
+        await db.stripeCustomer.delete({
+          where: {
+            userId: user.id
+          }
+        });
+        stripeCustomer = null;
+      }
+    }
+
     if (!stripeCustomer) {
       const customer = await stripe.customers.create({
         email: user.emailAddresses[0].emailAddress,
