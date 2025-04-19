@@ -1,8 +1,29 @@
 # Implementing a Testing Framework (Jest & React Testing Library)
 
-This guide outlines how to set up Jest and React Testing Library (RTL) for unit and integration testing in your Next.js application.
+This guide outlines how to set up Jest and React Testing Library (RTL) for unit and integration testing in your Next.js application. The implementation includes both manual setup steps and an automated script.
 
-## 1. Install Dependencies
+## Quick Setup (Automated)
+
+For quick setup, you can use the provided script:
+
+```bash
+# Make the script executable
+chmod +x setup-tests.sh
+
+# Run the script
+./setup-tests.sh
+```
+
+The script will:
+1. Install all necessary dependencies
+2. Create configuration files (jest.config.js, jest.setup.ts)
+3. Update tsconfig.json with Jest types
+4. Add test scripts to package.json
+5. Create a tests directory
+
+## Manual Setup Steps
+
+### 1. Install Dependencies
 
 Install Jest, RTL, and necessary helper libraries:
 
@@ -12,7 +33,7 @@ npm install --save-dev jest jest-environment-jsdom @testing-library/react @testi
 # yarn add --dev jest jest-environment-jsdom @testing-library/react @testing-library/jest-dom @types/jest
 ```
 
-## 2. Configure Jest
+### 2. Configure Jest
 
 Create a `jest.config.js` file in your project root:
 
@@ -28,23 +49,16 @@ const createJestConfig = nextJest({
 // Add any custom config to be passed to Jest
 /** @type {import('jest').Config} */
 const customJestConfig = {
-  // Add more setup options before each test is run
-  // setupFilesAfterEnv: ['<rootDir>/jest.setup.js'],
-  
-  // if using TypeScript with a baseUrl set to the root directory then you need the below for alias' to work
   moduleDirectories: ['node_modules', '<rootDir>/'],
   testEnvironment: 'jest-environment-jsdom',
-  setupFilesAfterEnv: ['<rootDir>/jest.setup.ts'], // <-- Setup file
+  setupFilesAfterEnv: ['<rootDir>/jest.setup.ts'], // Setup file
   moduleNameMapper: {
-    // Handle module aliases (this will be automatically configured by next/jest)
-    // Example: '@/components/(.*)': '<rootDir>/components/$1' 
-    // next/jest handles this automatically based on tsconfig.json
+    // Handle module aliases (automatically configured by next/jest based on tsconfig.json)
   },
   // Ignore node_modules, except for specific modules if needed
   transformIgnorePatterns: [
     '/node_modules/',
     // Add exceptions here if needed, e.g. for ESM modules
-    // '[/\\]node_modules[/\\].+\\.(js|jsx|mjs|cjs|ts|tsx)$' 
   ],
 };
 
@@ -52,37 +66,30 @@ const customJestConfig = {
 module.exports = createJestConfig(customJestConfig);
 ```
 
-Create a Jest setup file (`jest.setup.ts` or `.js`) referenced in `jest.config.js`:
+Create a Jest setup file (`jest.setup.ts`) referenced in `jest.config.js`:
 
 ```typescript
 // jest.setup.ts
-// Optional: configure or set up a testing framework before each test
-// Used for importing jest-dom matchers
+// Configure or set up testing framework before each test
 import '@testing-library/jest-dom/extend-expect';
 
-// Mock environment variables if needed (e.g., for client-side Pusher)
-// process.env.NEXT_PUBLIC_PUSHER_KEY = 'test-key';
-// process.env.NEXT_PUBLIC_PUSHER_CLUSTER = 'test-cluster';
+// Mock Next.js router
+jest.mock('next/navigation', () => ({
+  useRouter: () => ({ 
+    push: jest.fn(), 
+    replace: jest.fn(), 
+    refresh: jest.fn(),
+    back: jest.fn(),
+    prefetch: jest.fn() 
+  }),
+  useSearchParams: () => ({ get: jest.fn() }),
+  usePathname: () => '/'
+}));
 
-// Mock Next.js router if needed (though RTL generally encourages not mocking deeply)
-// jest.mock('next/navigation', () => ({
-//   useRouter: () => ({ push: jest.fn(), replace: jest.fn(), refresh: jest.fn() }),
-//   useSearchParams: () => ({ get: jest.fn() }),
-//   usePathname: () => '/'
-// }));
-
-// Mock Clerk if needed (especially for components relying on auth state)
-// jest.mock('@clerk/nextjs', () => ({
-//   ClerkProvider: ({ children }) => <div>{children}</div>,
-//   SignedIn: ({ children }) => <div>{children}</div>, // Mock as always signed in
-//   SignedOut: () => null, // Mock as never signed out
-//   UserButton: () => <button>User Button</button>,
-//   auth: () => ({ userId: 'test-user-id', sessionId: 'test-session-id', getToken: jest.fn() }),
-//   currentUser: () => ({ id: 'test-user-id', firstName: 'Test', lastName: 'User' /* ... other fields */ }),
-// }));
+// Add any global mocks, setup, or tear-down needed for your tests here
 ```
 
-## 3. Configure `tsconfig.json` (If using TypeScript)
+### 3. Configure `tsconfig.json` (If using TypeScript)
 
 Ensure your `tsconfig.json` includes Jest types:
 
@@ -104,9 +111,9 @@ Ensure your `tsconfig.json` includes Jest types:
 }
 ```
 
-## 4. Add Test Script
+### 4. Add Test Scripts
 
-Add a test script to your `package.json`:
+Add test scripts to your `package.json`:
 
 ```json
 // package.json
@@ -117,7 +124,6 @@ Add a test script to your `package.json`:
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "postinstall": "prisma generate",
     "test": "jest", // Add this
     "test:watch": "jest --watch" // Add this for watch mode
   },
@@ -125,29 +131,30 @@ Add a test script to your `package.json`:
 }
 ```
 
-## 5. Write Tests
+## Writing Tests
 
-Create test files alongside your components or in a dedicated `__tests__` directory (e.g., `components/ui/button.test.tsx` or `__tests__/button.test.tsx`).
+Tests in this project are organized in the `__tests__` directory. You can also co-locate tests with components using a `.test.tsx` or `.spec.tsx` extension.
 
-**Example: Testing a simple Button component (`components/ui/button.tsx`)**
+### Unit Test Example: Button Component
+
+Here's an example of a unit test for the Button component:
 
 ```typescript
-// components/ui/button.test.tsx
+// __tests__/button.test.tsx
 import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
 import '@testing-library/jest-dom';
-import { Button } from './button'; // Adjust import path
+import { Button } from '@/components/ui/button';
 
 describe('Button Component', () => {
   test('renders button with children', () => {
     render(<Button>Click Me</Button>);
-    // screen.debug(); // Helper to see the rendered DOM in console
     const buttonElement = screen.getByRole('button', { name: /click me/i });
     expect(buttonElement).toBeInTheDocument();
   });
 
   test('calls onClick handler when clicked', () => {
-    const handleClick = jest.fn(); // Create a mock function
+    const handleClick = jest.fn();
     render(<Button onClick={handleClick}>Click Me</Button>);
     
     const buttonElement = screen.getByRole('button', { name: /click me/i });
@@ -159,8 +166,8 @@ describe('Button Component', () => {
   test('applies correct variant class', () => {
     render(<Button variant="destructive">Delete</Button>);
     const buttonElement = screen.getByRole('button', { name: /delete/i });
-    // Check for a class specific to the destructive variant
-    expect(buttonElement).toHaveClass('bg-destructive'); 
+    // Check for classes that should be applied based on the variant
+    expect(buttonElement.className).toContain('bg-destructive');
   });
 
   test('disables button when disabled prop is true', () => {
@@ -168,78 +175,94 @@ describe('Button Component', () => {
     const buttonElement = screen.getByRole('button', { name: /disabled button/i });
     expect(buttonElement).toBeDisabled();
   });
+
+  test('renders with different sizes', () => {
+    render(<Button size="sm">Small Button</Button>);
+    const buttonElement = screen.getByRole('button', { name: /small button/i });
+    expect(buttonElement.className).toContain('h-9');
+  });
+
+  test('renders as child when asChild is true', () => {
+    render(
+      <Button asChild>
+        <a href="https://example.com">Link Button</a>
+      </Button>
+    );
+    
+    const linkElement = screen.getByRole('link', { name: /link button/i });
+    expect(linkElement).toBeInTheDocument();
+    expect(linkElement.tagName).toBe('A');
+    expect(linkElement).toHaveAttribute('href', 'https://example.com');
+  });
 });
 ```
 
-**Example: Testing a component using hooks (e.g., `ThemeToggle`)**
+### Integration Test Example: SearchInput Component
+
+For components that use hooks or require context, we need integration tests with proper mocking:
 
 ```typescript
-// components/theme-toggle.test.tsx 
+// __tests__/search-input.test.tsx
 import React from 'react';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom';
-import { ThemeToggle } from './theme-toggle'; // Adjust import
-import { ThemeProvider } from './providers/theme-provider'; // Adjust import
+import { SearchInput } from '@/components/search-input';
 
-// Mock the useTheme hook from next-themes
-const mockSetTheme = jest.fn();
-jest.mock('next-themes', () => ({
-  useTheme: () => ({ 
-    setTheme: mockSetTheme, 
-    theme: 'light', // Mock initial theme
-    themes: ['light', 'dark', 'system'] 
-  }),
+// Mock the debounce hook
+jest.mock('@/hooks/use-debounce', () => ({
+  useDebounce: (value: string) => value, // No debounce in tests
 }));
 
-// Helper to render with ThemeProvider
-const renderWithThemeProvider = (ui: React.ReactElement) => {
-  return render(
-    <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
-      {ui}
-    </ThemeProvider>
-  );
-};
+// Mock the router and navigation hooks
+const pushMock = jest.fn();
+jest.mock('next/navigation', () => ({
+  useRouter: () => ({
+    push: pushMock,
+    replace: jest.fn(),
+    refresh: jest.fn(),
+    back: jest.fn(),
+    prefetch: jest.fn(),
+  }),
+  useSearchParams: () => ({
+    get: jest.fn().mockImplementation((param) => {
+      if (param === 'categoryId') return 'test-category';
+      return null;
+    }),
+  }),
+  usePathname: () => '/courses',
+}));
 
-describe('ThemeToggle Component', () => {
+describe('SearchInput Component', () => {
   beforeEach(() => {
-    // Clear mock calls before each test
-    mockSetTheme.mockClear();
+    jest.clearAllMocks();
   });
 
-  test('renders the toggle button', () => {
-    renderWithThemeProvider(<ThemeToggle />);
-    const button = screen.getByRole('button', { name: /toggle theme/i });
-    expect(button).toBeInTheDocument();
-    // Check for initial icons (Sun visible, Moon hidden)
-    expect(screen.getByRole('img', { name: /sun/i })).toBeVisible(); // Assuming lucide icons have role=img and accessible names
-    // Note: Testing visibility of the Moon icon might require checking styles/classes applied by dark mode
-  });
-
-  test('opens dropdown menu on click', () => {
-    renderWithThemeProvider(<ThemeToggle />);
-    const button = screen.getByRole('button', { name: /toggle theme/i });
-    fireEvent.click(button);
-
-    // Check if menu items appear
-    expect(screen.getByRole('menuitem', { name: /light/i })).toBeInTheDocument();
-    expect(screen.getByRole('menuitem', { name: /dark/i })).toBeInTheDocument();
-    expect(screen.getByRole('menuitem', { name: /system/i })).toBeInTheDocument();
-  });
-
-  test('calls setTheme with \'dark\' when Dark menu item is clicked', () => {
-    renderWithThemeProvider(<ThemeToggle />);
-    fireEvent.click(screen.getByRole('button', { name: /toggle theme/i }));
-    fireEvent.click(screen.getByRole('menuitem', { name: /dark/i }));
+  test('renders search input with placeholder', () => {
+    render(<SearchInput />);
     
-    expect(mockSetTheme).toHaveBeenCalledWith('dark');
-    expect(mockSetTheme).toHaveBeenCalledTimes(1);
+    const inputElement = screen.getByPlaceholderText(/search for a course/i);
+    expect(inputElement).toBeInTheDocument();
+    
+    // Check if search icon is rendered
+    const searchIcon = document.querySelector('.lucide-search');
+    expect(searchIcon).toBeInTheDocument();
   });
 
-  // Add similar tests for Light and System options
+  test('updates URL with search query when typing', async () => {
+    render(<SearchInput />);
+    
+    const inputElement = screen.getByPlaceholderText(/search for a course/i);
+    fireEvent.change(inputElement, { target: { value: 'react' } });
+    
+    // Since we disabled debounce, the router.push should be called immediately
+    await waitFor(() => {
+      expect(pushMock).toHaveBeenCalledWith('/courses?categoryId=test-category&title=react');
+    });
+  });
 });
 ```
 
-## 6. Running Tests
+## Running Tests
 
 ```bash
 # Run all tests once
@@ -247,11 +270,57 @@ npm test
 
 # Run tests in watch mode (re-runs on file changes)
 npm run test:watch
+
+# Run tests with coverage report
+npm test -- --coverage
 ```
 
-## Considerations
+## Best Practices
 
-- **Mocking**: Mock external dependencies (APIs, libraries like Clerk, Pusher, database) to isolate the component under test. Use Jest's mocking capabilities (`jest.fn()`, `jest.mock()`).
-- **Integration vs. Unit**: Write unit tests for individual components and utility functions. Write integration tests for components that interact with each other or involve data fetching/state management.
-- **Data Fetching**: For components fetching data, you might mock the fetch call (`global.fetch`) or the specific data fetching hook/function used.
-- **Coverage**: Configure Jest to report test coverage to identify untested code paths. 
+1. **Test behavior, not implementation details**:
+   - Focus on testing what the user sees and experiences.
+   - Avoid testing component state directly unless necessary.
+
+2. **Use semantic queries**:
+   - Prefer queries like `getByRole`, `getByLabelText`, and `getByText` over `getByTestId`.
+   - This ensures your components are accessible.
+
+3. **Cleanup after tests**:
+   - React Testing Library automatically cleans up after each test, so you typically don't need to call `cleanup()`.
+
+4. **Isolate tests**:
+   - Each test should be independent and not rely on the state from other tests.
+   - Use `beforeEach` to reset mocks.
+
+5. **Mock external dependencies**:
+   - Mock API calls, Router, Auth, etc., to isolate the component being tested.
+
+## Troubleshooting
+
+### Type Definition Errors
+
+If you encounter type definition errors for Jest:
+
+```
+Cannot find type definition file for 'jest'.
+```
+
+Make sure:
+1. You've installed `@types/jest`
+2. The version is compatible with your Jest version
+3. Your tsconfig.json correctly includes the types
+
+## Documentation
+
+For more detailed testing patterns and guidelines, refer to the project's `TESTING.md` file, which includes:
+
+- Detailed examples for different test scenarios
+- Common testing patterns
+- Guidelines for mocking dependencies
+- Testing context providers and hooks
+
+## Resources
+
+- [Jest Documentation](https://jestjs.io/docs/getting-started)
+- [React Testing Library Documentation](https://testing-library.com/docs/react-testing-library/intro)
+- [Common Testing-Library Queries](https://testing-library.com/docs/queries/about) 
