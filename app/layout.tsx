@@ -7,6 +7,7 @@ import { ConfettiProvider } from '@/components/providers/confetti-provider'
 import QueryProvider from '@/components/providers/query-provider'
 import { ThemeProvider } from '@/components/providers/theme-provider'
 import { BadgeAchievementProvider } from '@/providers/badge-achievement-provider'
+import { PWAInitializer } from '@/components/pwa/pwa-init'
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -42,6 +43,7 @@ export default function RootLayout({
               <BadgeAchievementProvider>
                 <ConfettiProvider />
                 <ToastProvider />
+                <PWAInitializer />
                 {children}
               </BadgeAchievementProvider>
             </QueryProvider>

@@ -1,5 +1,4 @@
 import { authMiddleware } from "@clerk/nextjs";
-import { updateUserStreak } from "./lib/streak-service";
 import { NextResponse } from "next/server";
 import { awardDailyLoginPoints } from "./lib/actions/points";
 
@@ -31,26 +30,29 @@ export default authMiddleware({
         !EXCLUDED_PATHS.some(pattern => pattern.test(req.nextUrl.pathname))) {
       
       try {
-        // Update the user's streak in the background
-        // We don't await this to avoid delaying the response
-        updateUserStreak(auth.userId).catch(error => {
-          console.error("Error updating user streak:", error);
-        });
+        // Instead of directly calling streak service, we'll record the user visit
+        // and let a server action handle it when appropriate
+        
+        // Set a header that server components can use to trigger streak updates
+        const response = NextResponse.next();
+        response.headers.set('X-User-Visit', 'true');
+        
+        // Award daily login points if user is authenticated (only on HTML page loads, not API calls)
+        if (!req.nextUrl.pathname.startsWith('/api/') && req.headers.get('accept')?.includes('text/html')) {
+          try {
+            // Run asynchronously to avoid blocking the request
+            await awardDailyLoginPoints(auth.userId).catch((error) => {
+              console.error("[DAILY_LOGIN_POINTS_ERROR]", error);
+            });
+          } catch (error) {
+            // Don't fail the request if points can't be awarded
+            console.error("[DAILY_LOGIN_POINTS_ERROR]", error);
+          }
+        }
+        
+        return response;
       } catch (error) {
-        console.error("Error in streak middleware:", error);
-      }
-    }
-    
-    // Award daily login points if user is authenticated (only on HTML page loads, not API calls)
-    if (auth.userId && !req.nextUrl.pathname.startsWith('/api/') && req.headers.get('accept')?.includes('text/html')) {
-      try {
-        // Run asynchronously to avoid blocking the request
-        await awardDailyLoginPoints(auth.userId).catch((error) => {
-          console.error("[DAILY_LOGIN_POINTS_ERROR]", error);
-        });
-      } catch (error) {
-        // Don't fail the request if points can't be awarded
-        console.error("[DAILY_LOGIN_POINTS_ERROR]", error);
+        console.error("Error in middleware:", error);
       }
     }
     

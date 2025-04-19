@@ -1,4 +1,4 @@
-import { db } from "@/lib/db";
+import { safeDb, isServer, serverOnly } from "@/lib/safe-db";
 import { isSameDay, differenceInDays } from "date-fns";
 import { awardTieredBadge } from "./badge-service";
 import { awardPoints } from "./gamification-service";
@@ -7,18 +7,18 @@ import { awardPoints } from "./gamification-service";
  * Update a user's login streak
  * @param userId The Clerk user ID
  */
-export async function updateUserStreak(userId: string) {
+export const updateUserStreak = serverOnly(async (userId: string) => {
   if (!userId) return null;
 
   try {
     // Get current user profile
-    const profile = await db.userProfile.findUnique({
+    const profile = await safeDb.userProfile.findUnique({
       where: { userId }
     });
     
     if (!profile) {
       // Create profile if it doesn't exist
-      return await db.userProfile.create({
+      return await safeDb.userProfile.create({
         data: {
           userId,
           points: 0,
@@ -70,7 +70,7 @@ export async function updateUserStreak(userId: string) {
     }
     
     // Update user profile
-    const updatedProfile = await db.userProfile.update({
+    const updatedProfile = await safeDb.userProfile.update({
       where: { userId },
       data: streakData
     });
@@ -101,4 +101,4 @@ export async function updateUserStreak(userId: string) {
     console.error("Error updating user streak:", error);
     return null;
   }
-} 
+}); 
