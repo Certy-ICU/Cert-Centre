@@ -1,0 +1,31 @@
+{
+  "HomePage": {
+    "title": "Welcome to Cert Centre",
+    "description": "Your gateway to limitless learning."
+  },
+  "Navbar": {
+    "search": "Search Courses",
+    "teacherMode": "Teacher Mode",
+    "exit": "Exit"
+  },
+  "Courses": {
+    "title": "Courses",
+    "all": "All Courses",
+    "inProgress": "In Progress",
+    "completed": "Completed",
+    "enroll": "Enroll",
+    "continue": "Continue"
+  },
+  "Auth": {
+    "signIn": "Sign In",
+    "signUp": "Sign Up",
+    "signOut": "Sign Out"
+  },
+  "Common": {
+    "loading": "Loading...",
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "edit": "Edit"
+  }
+} 

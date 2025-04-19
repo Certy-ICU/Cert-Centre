@@ -1,0 +1,31 @@
+{
+  "HomePage": {
+    "title": "Bienvenido a Cert Centre",
+    "description": "Tu puerta de entrada al aprendizaje ilimitado."
+  },
+  "Navbar": {
+    "search": "Buscar Cursos",
+    "teacherMode": "Modo Profesor",
+    "exit": "Salir"
+  },
+  "Courses": {
+    "title": "Cursos",
+    "all": "Todos los Cursos",
+    "inProgress": "En Progreso",
+    "completed": "Completados",
+    "enroll": "Inscribirse",
+    "continue": "Continuar"
+  },
+  "Auth": {
+    "signIn": "Iniciar Sesión",
+    "signUp": "Registrarse",
+    "signOut": "Cerrar Sesión"
+  },
+  "Common": {
+    "loading": "Cargando...",
+    "save": "Guardar",
+    "cancel": "Cancelar",
+    "delete": "Eliminar",
+    "edit": "Editar"
+  }
+} 

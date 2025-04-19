@@ -1,18 +1,40 @@
 import { authMiddleware } from "@clerk/nextjs";
- 
-// This example protects all routes including api/trpc routes
-// Please edit this to allow other routes to be public as needed.
-// See https://clerk.com/docs/references/nextjs/auth-middleware for more information about configuring your middleware
+import { NextResponse } from "next/server";
+
+// This middleware handles authentication
 export default authMiddleware({
   publicRoutes: [
+    "/",
+    "/en",
+    "/es",
+    "/en/dashboard",
+    "/es/dashboard",
     "/api/webhook",
     "/sign-in",
     "/courses/(.*)/checkout",
-    "/courses/(.*)"  // Make course routes public during redirect
-  ]
+    "/courses/(.*)",
+    "/:locale/courses/(.*)"
+  ],
+  afterAuth(auth, req) {
+    // Handle the root path redirect
+    if (req.nextUrl.pathname === '/') {
+      const locale = req.headers.get('accept-language')?.split(',')[0].split('-')[0] || 'en';
+      const preferredLocale = ['en', 'es'].includes(locale) ? locale : 'en';
+      return NextResponse.redirect(new URL(`/${preferredLocale}`, req.url));
+    }
+    
+    return NextResponse.next();
+  }
 });
- 
+
 export const config = {
-  matcher: ["/((?!.*\\..*|_next).*)", "/", "/(api|trpc)(.*)"],
+  matcher: [
+    // Match all paths except for:
+    // - api routes (except webhook)
+    // - _next
+    // - public files (favicons, images, etc.)
+    // - static files
+    "/((?!_next|.*\\..*|api(?!/webhook)).*)"
+  ],
 };
  
