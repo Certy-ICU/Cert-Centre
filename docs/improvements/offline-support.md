@@ -137,7 +137,7 @@ export default function RootLayout({ /* ... */ }) {
 
 ## 6. Test PWA Functionality
 
-- **Build for Production**: PWA features typically work best in production builds (`npm run build && npm start`).
+- **Build for Production**: PWA features typically work best in production builds (`pnpm run build && pnpm start`).
 - **Lighthouse**: Use the Lighthouse audit tool in Chrome DevTools. Check the "Progressive Web App" category.
 - **Application Tab**: In Chrome DevTools, use the "Application" tab to inspect the manifest, service workers, and storage.
 - **Offline Simulation**: Use the "Offline" checkbox in the DevTools Network or Service Worker tabs to simulate offline conditions and test if cached resources load.
