@@ -15,14 +15,17 @@ export const FileUpload = ({
   endpoint
 }: FileUploadProps) => {
   return (
-    <UploadDropzone
-      endpoint={endpoint}
-      onClientUploadComplete={(res) => {
-        onChange(res?.[0].url);
-      }}
-      onUploadError={(error: Error) => {
-        toast.error(`${error?.message}`);
-      }}
-    />
+    <div className="w-full max-w-[100%] overflow-hidden">
+      <UploadDropzone
+        className="ut-label:text-sm sm:ut-label:text-base ut-allowed-content:text-xs sm:ut-allowed-content:text-sm ut-button:text-xs sm:ut-button:text-sm ut-upload-icon:h-10 ut-upload-icon:w-10 sm:ut-upload-icon:h-14 sm:ut-upload-icon:w-14"
+        endpoint={endpoint}
+        onClientUploadComplete={(res) => {
+          onChange(res?.[0].url);
+        }}
+        onUploadError={(error: Error) => {
+          toast.error(`${error?.message}`);
+        }}
+      />
+    </div>
   )
 }

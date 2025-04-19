@@ -79,10 +79,44 @@ body,
   body {
     @apply bg-background text-foreground;
   }
+  h1 {
+    @apply text-2xl sm:text-3xl md:text-4xl font-bold;
+  }
+  h2 {
+    @apply text-xl sm:text-2xl md:text-3xl font-semibold;
+  }
+  h3 {
+    @apply text-lg sm:text-xl md:text-2xl font-medium;
+  }
+  p {
+    @apply text-sm sm:text-base;
+  }
+}
+
+/* Responsive adjustments */
+@layer utilities {
+  .container-responsive {
+    @apply px-3 sm:px-6 md:px-8 w-full max-w-7xl mx-auto;
+  }
+  
+  .mobile-py {
+    @apply py-3 sm:py-6;
+  }
+  
+  .mobile-px {
+    @apply px-3 sm:px-6;
+  }
 }
 
 .ql-container {
   font-size: 16px !important;
+}
+
+/* Mobile-first media query adjustments */
+@media (max-width: 640px) {
+  input, select, textarea {
+    font-size: 16px !important; /* Prevents zoom on iOS */
+  }
 }
 
 @import "~@uploadthing/react/styles.css"

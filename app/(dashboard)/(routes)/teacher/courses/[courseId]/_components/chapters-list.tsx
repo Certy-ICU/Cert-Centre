@@ -9,6 +9,7 @@ import {
   DropResult,
 } from "@hello-pangea/dnd";
 import { Grip, Pencil } from "lucide-react";
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
@@ -25,15 +26,51 @@ export const ChaptersList = ({
   onEdit
 }: ChaptersListProps) => {
   const [isMounted, setIsMounted] = useState(false);
-  const [chapters, setChapters] = useState(items);
+  const queryClient = useQueryClient();
+  
+  // Store chapters data in React Query cache
+  const { data: chapters = items } = useQuery({
+    queryKey: ['chapters', items.map(item => item.id).join(',')],
+    queryFn: () => items,
+    initialData: items,
+    enabled: isMounted
+  });
+  
+  // Mutation for reordering chapters
+  const { mutate: reorderChapters } = useMutation({
+    mutationFn: (updatedChapters: Chapter[]) => {
+      // Return a promise that resolves immediately since we're just updating local state
+      return Promise.resolve(updatedChapters);
+    },
+    onSuccess: (updatedChapters) => {
+      // Update the cache with the new order
+      queryClient.setQueryData(['chapters', items.map(item => item.id).join(',')], updatedChapters);
+      
+      // Calculate bulk update data for the server
+      const startIndex = 0;
+      const endIndex = updatedChapters.length - 1;
+      const chaptersToUpdate = updatedChapters.slice(startIndex, endIndex + 1);
+      
+      const bulkUpdateData = chaptersToUpdate.map((chapter) => ({
+        id: chapter.id,
+        position: updatedChapters.findIndex((item) => item.id === chapter.id)
+      }));
+      
+      // Call the parent's onReorder function to update on the server
+      onReorder(bulkUpdateData);
+    }
+  });
 
   useEffect(() => {
     setIsMounted(true);
   }, []);
 
   useEffect(() => {
-    setChapters(items);
-  }, [items]);
+    if (isMounted) {
+      // Update the cache when items prop changes
+      queryClient.setQueryData(['chapters', items.map(item => item.id).join(',')], items);
+    }
+  }, [items, isMounted, queryClient]);
 
   const onDragEnd = (result: DropResult) => {
     if (!result.destination) return;
@@ -42,19 +79,7 @@ export const ChaptersList = ({
     const [reorderedItem] = items.splice(result.source.index, 1);
     items.splice(result.destination.index, 0, reorderedItem);
 
-    const startIndex = Math.min(result.source.index, result.destination.index);
-    const endIndex = Math.max(result.source.index, result.destination.index);
-
-    const updatedChapters = items.slice(startIndex, endIndex + 1);
-
-    setChapters(items);
-
-    const bulkUpdateData = updatedChapters.map((chapter) => ({
-      id: chapter.id,
-      position: items.findIndex((item) => item.id === chapter.id)
-    }));
-
-    onReorder(bulkUpdateData);
+    reorderChapters(items);
   }
 
   if (!isMounted) {
