@@ -10,6 +10,7 @@ import { Preview } from "@/components/preview";
 import { VideoPlayer } from "./_components/video-player";
 import { CourseEnrollButton } from "./_components/course-enroll-button";
 import { CourseProgressButton } from "./_components/course-progress-button";
+import { CourseCompletion } from "./_components/course-completion";
 
 const ChapterIdPage = async ({
   params
@@ -112,6 +113,17 @@ const ChapterIdPage = async ({
                 ))}
               </div>
             </>
+          )}
+          {purchase && (
+            <div className="p-4">
+              <CourseCompletion
+                courseId={params.courseId}
+                userId={userId}
+                chapterId={params.chapterId}
+                nextChapterId={nextChapter?.id}
+                isCompleted={!!userProgress?.isCompleted}
+              />
+            </div>
           )}
         </div>
       </div>

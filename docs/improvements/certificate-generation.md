@@ -185,7 +185,7 @@ export async function GET(
     // 4. Serialize the PDF to bytes
     const pdfBytes = await pdfDoc.save();
 
-    // 5. Optional: Store Certificate Record
+    // 5. Store Certificate Record
     // Consider creating a Certificate model in Prisma to store the certificate ID,
     // userId, courseId, generation date for verification purposes.
     // await db.certificate.create({ data: { id: certificateId, userId, courseId } });
@@ -251,7 +251,7 @@ export const CertificateButton = ({ courseId, isCompleted }: CertificateButtonPr
 };
 ```
 
-## 6. Verification (Optional)
+## 6. Verification 
 
 - **Certificate ID**: Include a unique ID on the certificate.
 - **Verification Page**: Create a public page where anyone can enter a certificate ID to verify its authenticity.

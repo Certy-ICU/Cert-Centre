@@ -9,7 +9,7 @@ Let's explore an approach using `swagger-jsdoc` which reads JSDoc annotations.
 ## 1. Install Dependencies
 
 ```bash
-npm install swagger-jsdoc swagger-ui-react
+pnpm install swagger-jsdoc swagger-ui-react
 # Or using yarn
 # yarn add swagger-jsdoc swagger-ui-react
 ```
