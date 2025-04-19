@@ -50,10 +50,10 @@ const CreatePage = () => {
   return ( 
     <div className="max-w-5xl mx-auto flex md:items-center md:justify-center h-full p-6">
       <div>
-        <h1 className="text-2xl">
+        <h1 className="text-2xl font-bold dark:text-white">
           Name your course
         </h1>
-        <p className="text-sm text-slate-600">
+        <p className="text-sm text-slate-600 dark:text-slate-300">
           What would you like to name your course? Don&apos;t worry, you can change this later.
         </p>
         <Form {...form}>
@@ -66,17 +66,18 @@ const CreatePage = () => {
               name="title"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>
+                  <FormLabel className="dark:text-slate-200">
                     Course title
                   </FormLabel>
                   <FormControl>
                     <Input
                       disabled={isSubmitting}
                       placeholder="e.g. 'Advanced web development'"
+                      className="dark:bg-slate-900 dark:border-slate-700 dark:text-slate-100"
                       {...field}
                     />
                   </FormControl>
-                  <FormDescription>
+                  <FormDescription className="dark:text-slate-400">
                     What will you teach in this course?
                   </FormDescription>
                   <FormMessage />
@@ -88,6 +89,7 @@ const CreatePage = () => {
                 <Button
                   type="button"
                   variant="ghost"
+                  className="dark:text-slate-200 dark:hover:text-slate-100 dark:hover:bg-slate-800"
                 >
                   Cancel
                 </Button>

@@ -100,16 +100,16 @@ export const ChaptersList = ({
                 {(provided) => (
                   <div
                     className={cn(
-                      "flex items-center gap-x-2 bg-slate-200 border-slate-200 border text-slate-700 rounded-md mb-4 text-sm",
-                      chapter.isPublished && "bg-sky-100 border-sky-200 text-sky-700"
+                      "flex items-center gap-x-2 bg-slate-200 dark:bg-slate-700 border-slate-200 dark:border-slate-600 border text-slate-700 dark:text-slate-200 rounded-md mb-4 text-sm",
+                      chapter.isPublished && "bg-sky-100 dark:bg-sky-900/30 border-sky-200 dark:border-sky-900 text-sky-700 dark:text-sky-300"
                     )}
                     ref={provided.innerRef}
                     {...provided.draggableProps}
                   >
                     <div
                       className={cn(
-                        "px-2 py-3 border-r border-r-slate-200 hover:bg-slate-300 rounded-l-md transition",
-                        chapter.isPublished && "border-r-sky-200 hover:bg-sky-200"
+                        "px-2 py-3 border-r border-r-slate-200 dark:border-r-slate-600 hover:bg-slate-300 dark:hover:bg-slate-600 rounded-l-md transition",
+                        chapter.isPublished && "border-r-sky-200 dark:border-r-sky-800 hover:bg-sky-200 dark:hover:bg-sky-800/50"
                       )}
                       {...provided.dragHandleProps}
                     >
@@ -120,14 +120,14 @@ export const ChaptersList = ({
                     {chapter.title}
                     <div className="ml-auto pr-2 flex items-center gap-x-2">
                       {chapter.isFree && (
-                        <Badge>
+                        <Badge className="bg-emerald-100 text-emerald-700 dark:bg-emerald-700/20 dark:text-emerald-400 dark:border dark:border-emerald-600/50">
                           Free
                         </Badge>
                       )}
                       <Badge
                         className={cn(
-                          "bg-slate-500",
-                          chapter.isPublished && "bg-sky-700"
+                          "bg-slate-500 dark:bg-slate-600",
+                          chapter.isPublished && "bg-sky-700 dark:bg-sky-600"
                         )}
                       >
                         {chapter.isPublished ? "Published" : "Draft"}

@@ -61,10 +61,10 @@ export const TitleForm = ({
   }
 
   return (
-    <div className="mt-6 border bg-slate-100 rounded-md p-4">
-      <div className="font-medium flex items-center justify-between">
+    <div className="mt-6 border bg-slate-100 dark:bg-slate-800 dark:border-slate-700 rounded-md p-4">
+      <div className="font-medium flex items-center justify-between dark:text-white">
         Course title
-        <Button onClick={toggleEdit} variant="ghost">
+        <Button onClick={toggleEdit} variant="ghost" className="dark:text-slate-200 dark:hover:text-slate-100 dark:hover:bg-slate-700">
           {isEditing ? (
             <>Cancel</>
           ) : (
@@ -76,7 +76,7 @@ export const TitleForm = ({
         </Button>
       </div>
       {!isEditing && (
-        <p className="text-sm mt-2">
+        <p className="text-sm mt-2 dark:text-slate-300">
           {initialData.title}
         </p>
       )}
@@ -95,6 +95,7 @@ export const TitleForm = ({
                     <Input
                       disabled={isSubmitting}
                       placeholder="e.g. 'Advanced web development'"
+                      className="dark:bg-slate-900 dark:border-slate-700 dark:text-slate-100"
                       {...field}
                     />
                   </FormControl>

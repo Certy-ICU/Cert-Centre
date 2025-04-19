@@ -17,13 +17,14 @@ Cert Centre is a modern Learning Management System (LMS) built with Next.js 13+ 
 - **Interactive Learning** - Track progress, mark chapters as completed, and view completion stats
 - **Multimedia Content** - Access video lessons with adaptive playback using Mux's HLS streaming
 - **User Dashboard** - Monitor enrolled courses and progress from a centralized student portal
+- **Course Certificates** - Earn and download certificates upon completing courses
 
 ### For Educators
 - **Course Management** - Create, edit, and publish courses with an intuitive control panel
 - **Chapter Organization** - Create and reorder chapters via drag-and-drop interface
 - **Rich Content Editor** - Enhance chapter descriptions with a full-featured rich text editor
 - **File Management** - Upload thumbnails, attachments, and videos with UploadThing integration
-- **Analytics** - Track student enrollment and engagement metrics
+- **Enhanced Analytics** - Comprehensive dashboard with revenue trends, course performance, and student engagement metrics
 
 ## 🛠️ Tech Stack
 
@@ -114,7 +115,19 @@ Cert Centre is a modern Learning Management System (LMS) built with Next.js 13+ 
    npx prisma db push
    ```
 
-5. **Start the development server**
+5. **Optional: Generate demo data**
+
+   ```bash
+   # For general seed data
+   npx ts-node --compiler-options '{"module":"CommonJS"}' prisma/seed.ts
+   
+   # For demo teacher data (recommended for testing analytics)
+   npx ts-node --compiler-options '{"module":"CommonJS"}' scripts/generate-demo-teacher.ts
+   ```
+
+   Note: Configure your demo teacher ID in `scripts/generate-demo-teacher.ts` before running.
+
+6. **Start the development server**
 
    ```bash
    npm run dev
@@ -122,7 +135,7 @@ Cert Centre is a modern Learning Management System (LMS) built with Next.js 13+ 
    pnpm dev
    ```
 
-6. **Access the application**
+7. **Access the application**
 
    Open [http://localhost:3000](http://localhost:3000) in your browser.
 
@@ -158,10 +171,10 @@ For detailed API documentation, refer to the [API Documentation](docs/improvemen
 
 ## 🛣️ Roadmap
 
-- [ ] Enhanced analytics dashboard for educators
+- [x] Enhanced analytics dashboard for educators
 - [ ] Student discussion forums for each course
 - [ ] Quiz and assessment functionality
-- [ ] Certificate generation upon course completion
+- [x] Certificate generation upon course completion
 - [ ] Mobile application support
 
 ## 🤝 Contributing

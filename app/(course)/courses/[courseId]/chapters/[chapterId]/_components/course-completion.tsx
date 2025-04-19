@@ -50,14 +50,14 @@ export const CourseCompletion = ({
 
   // Always show completion component if the chapter is completed
   return (
-    <div className="mt-4 p-4 border rounded-md bg-slate-100">
+    <div className="mt-4 p-4 border rounded-md bg-slate-100 dark:bg-slate-800 dark:border-slate-700">
       <div className="flex items-center gap-x-2 mb-2">
-        <CheckCircle className="text-green-600" />
-        <h2 className="text-lg font-medium">
+        <CheckCircle className="text-emerald-600 dark:text-emerald-500" />
+        <h2 className="text-lg font-medium dark:text-white">
           Course Completion
         </h2>
       </div>
-      <p className="text-sm text-slate-700 mb-4">
+      <p className="text-sm text-slate-700 dark:text-slate-300 mb-4">
         {isCourseCompleted 
           ? "Congratulations! You've completed the course. Download your certificate below."
           : nextChapterId 

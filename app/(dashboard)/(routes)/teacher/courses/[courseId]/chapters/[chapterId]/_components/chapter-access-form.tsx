@@ -66,7 +66,7 @@ export const ChapterAccessForm = ({
   }
 
   return (
-    <div className="mt-6 border bg-slate-100 rounded-md p-4">
+    <div className="mt-6 border bg-slate-100 dark:bg-slate-800 rounded-md p-4">
       <div className="font-medium flex items-center justify-between">
         Chapter access
         <Button onClick={toggleEdit} variant="ghost">
@@ -83,10 +83,10 @@ export const ChapterAccessForm = ({
       {!isEditing && (
         <p className={cn(
           "text-sm mt-2",
-          !initialData.isFree && "text-slate-500 italic"
+          !initialData.isFree && "text-slate-700 dark:text-slate-300"
         )}>
           {initialData.isFree ? (
-            <>This chapter is free for preview.</>
+            <span className="text-emerald-600 dark:text-emerald-400">Free for preview</span>
           ) : (
             <>This chapter is not free.</>
           )}
@@ -102,7 +102,7 @@ export const ChapterAccessForm = ({
               control={form.control}
               name="isFree"
               render={({ field }) => (
-                <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
+                <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4 bg-white dark:bg-slate-700">
                   <FormControl>
                     <Checkbox
                       checked={field.value}

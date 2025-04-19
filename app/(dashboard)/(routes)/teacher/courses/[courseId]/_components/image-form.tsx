@@ -45,10 +45,10 @@ export const ImageForm = ({
   }
 
   return (
-    <div className="mt-6 border bg-slate-100 rounded-md p-4">
-      <div className="font-medium flex items-center justify-between">
+    <div className="mt-6 border bg-slate-100 dark:bg-slate-800 dark:border-slate-700 rounded-md p-4">
+      <div className="font-medium flex items-center justify-between dark:text-white">
         Course image
-        <Button onClick={toggleEdit} variant="ghost">
+        <Button onClick={toggleEdit} variant="ghost" className="dark:text-slate-200 dark:hover:text-slate-100 dark:hover:bg-slate-700">
           {isEditing && (
             <>Cancel</>
           )}
@@ -68,8 +68,8 @@ export const ImageForm = ({
       </div>
       {!isEditing && (
         !initialData.imageUrl ? (
-          <div className="flex items-center justify-center h-60 bg-slate-200 rounded-md">
-            <ImageIcon className="h-10 w-10 text-slate-500" />
+          <div className="flex items-center justify-center h-60 bg-slate-200 dark:bg-slate-700 rounded-md">
+            <ImageIcon className="h-10 w-10 text-slate-500 dark:text-slate-400" />
           </div>
         ) : (
           <div className="relative aspect-video mt-2">
@@ -92,7 +92,7 @@ export const ImageForm = ({
               }
             }}
           />
-          <div className="text-xs text-muted-foreground mt-4">
+          <div className="text-xs text-muted-foreground mt-4 dark:text-slate-400">
             16:9 aspect ratio recommended
           </div>
         </div>

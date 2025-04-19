@@ -2,12 +2,11 @@
 
 import * as z from "zod";
 import axios from "axios";
-import { Pencil, PlusCircle, ImageIcon, File, Loader2, X } from "lucide-react";
+import { File, Pencil, PlusCircle, X } from "lucide-react";
 import { useState } from "react";
 import toast from "react-hot-toast";
 import { useRouter } from "next/navigation";
 import { Attachment, Course } from "@prisma/client";
-import Image from "next/image";
 
 import { Button } from "@/components/ui/button";
 import { FileUpload } from "@/components/file-upload";
@@ -57,11 +56,13 @@ export const AttachmentForm = ({
   }
 
   return (
-    <div className="mt-6 border bg-slate-100 rounded-md p-4">
-      <div className="font-medium flex items-center justify-between">
+    <div className="mt-6 border bg-slate-100 dark:bg-slate-800 dark:border-slate-700 rounded-md p-4">
+      <div className="font-medium flex items-center justify-between dark:text-white">
         Course attachments
-        <Button onClick={toggleEdit} variant="ghost">
-          {isEditing && <>Cancel</>}
+        <Button onClick={toggleEdit} variant="ghost" className="dark:text-slate-200 dark:hover:text-slate-100 dark:hover:bg-slate-700">
+          {isEditing && (
+            <>Cancel</>
+          )}
           {!isEditing && (
             <>
               <PlusCircle className="h-4 w-4 mr-2" />
@@ -73,7 +74,7 @@ export const AttachmentForm = ({
       {!isEditing && (
         <>
           {initialData.attachments.length === 0 && (
-            <p className="text-sm mt-2 text-slate-500 italic">
+            <p className="text-sm mt-2 text-slate-500 dark:text-slate-400 italic">
               No attachments yet
             </p>
           )}
@@ -82,18 +83,19 @@ export const AttachmentForm = ({
               {initialData.attachments.map((attachment) => (
                 <div
                   key={attachment.id}
-                  className="flex items-center p-3 w-full bg-sky-100 border-sky-200 border text-sky-700 rounded-md"
+                  className="flex items-center p-3 w-full bg-sky-100 dark:bg-sky-900/30 border border-sky-200 dark:border-sky-900 text-sky-700 dark:text-sky-300 rounded-md"
                 >
                   <File className="h-4 w-4 mr-2 flex-shrink-0" />
-                  <p className="text-xs line-clamp-1">{attachment.name}</p>
+                  <p className="text-xs line-clamp-1">
+                    {attachment.name}
+                  </p>
                   {deletingId === attachment.id && (
-                    <div>
-                      <Loader2 className="h-4 w-4 animate-spin" />
+                    <div className="ml-auto">
+                      Deleting...
                     </div>
                   )}
                   {deletingId !== attachment.id && (
                     <button
-                      type="button"
                       onClick={() => onDelete(attachment.id)}
                       className="ml-auto hover:opacity-75 transition"
                       aria-label="Delete attachment"
@@ -117,11 +119,11 @@ export const AttachmentForm = ({
               }
             }}
           />
-          <div className="text-xs text-muted-foreground mt-4">
+          <div className="text-xs text-muted-foreground mt-4 dark:text-slate-400">
             Add anything your students might need to complete the course.
           </div>
         </div>
       )}
     </div>
-  );
+  )
 }

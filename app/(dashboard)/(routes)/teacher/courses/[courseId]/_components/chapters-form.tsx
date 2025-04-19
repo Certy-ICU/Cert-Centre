@@ -86,15 +86,15 @@ export const ChaptersForm = ({
   }
 
   return (
-    <div className="relative mt-6 border bg-slate-100 rounded-md p-4">
+    <div className="relative mt-6 border bg-slate-100 dark:bg-slate-800 dark:border-slate-700 rounded-md p-4">
       {isUpdating && (
-        <div className="absolute h-full w-full bg-slate-500/20 top-0 right-0 rounded-m flex items-center justify-center">
-          <Loader2 className="animate-spin h-6 w-6 text-sky-700" />
+        <div className="absolute h-full w-full bg-slate-500/20 dark:bg-slate-500/30 top-0 right-0 rounded-m flex items-center justify-center">
+          <Loader2 className="animate-spin h-6 w-6 text-sky-700 dark:text-sky-500" />
         </div>
       )}
-      <div className="font-medium flex items-center justify-between">
+      <div className="font-medium flex items-center justify-between dark:text-white">
         Course chapters
-        <Button onClick={toggleCreating} variant="ghost">
+        <Button onClick={toggleCreating} variant="ghost" className="dark:text-slate-200 dark:hover:text-slate-100 dark:hover:bg-slate-700">
           {isCreating ? (
             <>Cancel</>
           ) : (
@@ -120,6 +120,7 @@ export const ChaptersForm = ({
                     <Input
                       disabled={isSubmitting}
                       placeholder="e.g. 'Introduction to the course'"
+                      className="dark:bg-slate-900 dark:border-slate-700 dark:text-slate-100"
                       {...field}
                     />
                   </FormControl>
@@ -138,8 +139,8 @@ export const ChaptersForm = ({
       )}
       {!isCreating && (
         <div className={cn(
-          "text-sm mt-2",
-          !initialData.chapters.length && "text-slate-500 italic"
+          "text-sm mt-2 dark:text-slate-300",
+          !initialData.chapters.length && "text-slate-500 dark:text-slate-500 italic"
         )}>
           {!initialData.chapters.length && "No chapters"}
           <ChaptersList
@@ -150,7 +151,7 @@ export const ChaptersForm = ({
         </div>
       )}
       {!isCreating && (
-        <p className="text-xs text-muted-foreground mt-4">
+        <p className="text-xs text-muted-foreground dark:text-slate-400 mt-4">
           Drag and drop to reorder the chapters
         </p>
       )}
