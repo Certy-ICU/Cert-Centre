@@ -2,8 +2,9 @@
 
 import qs from "query-string";
 import { Search } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useState, useEffect } from "react";
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
+import { useMutation } from '@tanstack/react-query';
 
 import { Input } from "@/components/ui/input";
 import { useDebounce } from "@/hooks/use-debounce";
@@ -17,18 +18,31 @@ export const SearchInput = () => {
   const pathname = usePathname();
 
   const currentCategoryId = searchParams.get("categoryId");
+  
+  // Using useMutation instead of useEffect for handling URL updates
+  const { mutate: updateSearchParams } = useMutation({
+    mutationFn: (searchValue: string) => {
+      const url = qs.stringifyUrl({
+        url: pathname,
+        query: {
+          categoryId: currentCategoryId,
+          title: searchValue,
+        }
+      }, { skipEmptyString: true, skipNull: true });
+      
+      router.push(url);
+      // Return a resolved promise since React Query expects a Promise
+      return Promise.resolve();
+    },
+    // No need for onSuccess/onError callbacks for this simple case
+  });
 
+  // Watch for changes to debounced value and trigger the mutation
   useEffect(() => {
-    const url = qs.stringifyUrl({
-      url: pathname,
-      query: {
-        categoryId: currentCategoryId,
-        title: debouncedValue,
-      }
-    }, { skipEmptyString: true, skipNull: true });
-
-    router.push(url);
-  }, [debouncedValue, currentCategoryId, router, pathname])
+    if (debouncedValue !== undefined) {
+      updateSearchParams(debouncedValue);
+    }
+  }, [debouncedValue, currentCategoryId, updateSearchParams]);
 
   return (
     <div className="relative">
