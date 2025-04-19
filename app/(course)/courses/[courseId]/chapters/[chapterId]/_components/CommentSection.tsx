@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "react-hot-toast";
 import { CommentDisplay } from "./CommentDisplay";
+import { showPointsNotification } from "@/components/gamification/badge-notification";
 
 interface UserData {
   id: string;
@@ -84,6 +85,10 @@ export const CommentSection = ({
       );
       setCommentText("");
       toast.success("Comment added");
+      
+      // Show points notification for adding a comment
+      showPointsNotification(5, "Posted a comment");
+      
       fetchComments();
     } catch (error) {
       toast.error("Failed to add comment");

@@ -1,108 +1,107 @@
-# Implementing Gamification (Badges/Points)
+# Gamification System Documentation
 
-This guide outlines how to add gamification elements like points, badges, and potentially leaderboards to the LMS to increase user engagement.
+## Overview
 
-## 1. Define Gamification Mechanics
+The gamification system enhances user engagement through points, badges, levels, and leaderboards. This document outlines the architecture, implementation, and usage of these features within the learning platform.
 
-- **Points System**: Decide which actions grant points (e.g., completing a chapter, completing a course, posting a helpful comment, daily login).
-- **Badges**: Define criteria for earning badges (e.g., "Course Completer", "First Comment", "Topic Master", "Streak Achiever"). Design or find icons for badges.
-- **Levels (Optional)**: Define point thresholds for reaching different user levels.
-- **Leaderboards (Optional)**: Decide if you want leaderboards (e.g., weekly points, all-time points, course-specific).
+## 1. System Architecture
 
-## 2. Data Model Changes (Prisma)
+### 1.1 Core Components
 
-Update `prisma/schema.prisma` to store gamification data.
+The gamification system consists of the following core elements:
+
+| Component | Description |
+|-----------|-------------|
+| Points | Numeric rewards for user actions (completing chapters, courses, posting comments) |
+| Badges | Visual achievements awarded for specific accomplishments |
+| Levels | Progression tiers based on accumulated points |
+| Leaderboards | Rankings showing top users based on points |
+
+### 1.2 Reward Mechanics
+
+| Action | Points | Badge Eligibility |
+|--------|--------|-------------------|
+| Complete Chapter | 10 | - |
+| Complete Course | 50 (bonus) | "Course Completer" |
+| Post Comment | 5 | "Engaged Learner" (first comment) |
+| Start Discussion | 5 | - |
+| Daily Login | 1 | "Streak Master" (7 consecutive days) |
+
+## 2. Data Model
+
+The gamification system extends the existing database schema with the following models:
 
 ```prisma
-// prisma/schema.prisma
-
-// Add to track user points and level
+// User profile - Stores points and level information
 model UserProfile {
-  userId    String @id // Clerk User ID
-  points    Int    @default(0)
-  // level     Int    @default(1) // Optional
-
-  // Optional: If syncing Clerk data
-  username  String?
-  imageUrl  String?
-
-  earnedBadges UserBadge[]
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  userId        String    @id                  // Clerk User ID
+  points        Int       @default(0)          // Accumulated points
+  username      String?                        // Optional: From Clerk data
+  imageUrl      String?                        // Optional: From Clerk data
+  earnedBadges  UserBadge[]                    // Relation to earned badges
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
 }
 
-// Define available badges
+// Badges - Defines available achievements
 model Badge {
-  id          String @id @default(uuid())
-  name        String @unique
-  description String
-  iconUrl     String // URL to the badge icon
-  criteria    String // Description of how to earn it (for display)
-  // criteriaType String // Optional: For programmatic checks (e.g., "COMPLETE_COURSE", "POST_COMMENT")
-  // criteriaValue Int? // Optional: e.g., number of comments needed
-
-  users UserBadge[]
-
-  createdAt DateTime @default(now())
+  id            String    @id @default(uuid())
+  name          String    @unique              // Unique badge name
+  description   String                         // Badge description
+  iconUrl       String                         // URL to badge icon
+  criteria      String                         // How to earn (display text)
+  users         UserBadge[]                    // Relation to users who earned
+  createdAt     DateTime  @default(now())
 }
 
-// Track which users have earned which badges
+// User-Badge junction - Tracks which users earned which badges
 model UserBadge {
-  id        String   @id @default(uuid())
-  userId    String
-  user      UserProfile @relation(fields: [userId], references: [userId], onDelete: Cascade)
-  badgeId   String
-  badge     Badge    @relation(fields: [badgeId], references: [id], onDelete: Cascade)
+  id            String    @id @default(uuid())
+  userId        String
+  user          UserProfile @relation(fields: [userId], references: [userId], onDelete: Cascade)
+  badgeId       String
+  badge         Badge     @relation(fields: [badgeId], references: [id], onDelete: Cascade)
+  earnedAt      DateTime  @default(now())
 
-  earnedAt DateTime @default(now())
-
-  @@unique([userId, badgeId]) // User can earn each badge only once
+  @@unique([userId, badgeId])                  // User can earn each badge only once
   @@index([userId])
   @@index([badgeId])
 }
-
-// Optional: Log point-earning activities
-// model PointLog {
-//   id        String   @id @default(uuid())
-//   userId    String
-//   points    Int
-//   activity  String // e.g., "COMPLETE_CHAPTER", "POST_COMMENT"
-//   entityId  String? // e.g., Chapter ID or Comment ID
-//   createdAt DateTime @default(now())
-//
-//   @@index([userId])
-// }
 ```
 
-- **Seed Badges**: Create initial badge definitions in your database, possibly using a Prisma seed script.
-- **Apply Migrations**: Run `npx prisma generate` and `npx prisma db push` (or `migrate dev`).
+## 3. Implementation Guide
 
-## 3. Awarding Points and Badges
+### 3.1 Database Setup
 
-Modify existing API routes or create dedicated logic (e.g., helper functions, service classes) to award points and check for badges when specific actions occur.
+1. Add the models to your `prisma/schema.prisma` file
+2. Generate Prisma client and apply migrations:
 
-- **Create/Update UserProfile**: Ensure a `UserProfile` record is created when a user signs up or performs their first relevant action.
-- **Trigger Points/Badge Checks**: Integrate checks into relevant actions:
-    - **Chapter Completion**: In the API route that handles `UserProgress` updates (`POST /api/courses/.../chapters/.../progress` ?), when `isCompleted` becomes `true`, award points and check for course completion badges.
-    - **Course Completion**: Check if all chapters in a course are complete. Award points/badges.
-    - **Comment Posting**: In the comment creation API (`POST /api/.../comments`), award points and check for commenting-related badges.
-    - **Other Actions**: Add logic for daily logins, streaks, etc., potentially using scheduled tasks or middleware.
+```bash
+# Generate types
+pnpm prisma generate
+
+# Apply database changes
+pnpm prisma migrate dev --name add_gamification
+```
+
+3. Seed initial badge data in your seed script
+
+### 3.2 Backend Services
+
+Create utility functions to manage points and badges:
 
 ```typescript
-// Example: Inside chapter completion logic
-import { db } from "@/lib/db";
-
-async function awardPoints(userId: string, points: number) {
+// Award points to a user
+export async function awardPoints(userId: string, points: number) {
   await db.userProfile.upsert({
     where: { userId },
     update: { points: { increment: points } },
     create: { userId, points },
   });
-  // Optional: Log in PointLog
 }
 
-async function checkAndAwardBadge(userId: string, badgeName: string) {
+// Check criteria and award badge if not already earned
+export async function checkAndAwardBadge(userId: string, badgeName: string) {
   const badge = await db.badge.findUnique({ where: { name: badgeName } });
   if (!badge) return;
 
@@ -114,56 +113,104 @@ async function checkAndAwardBadge(userId: string, badgeName: string) {
     await db.userBadge.create({
       data: { userId, badgeId: badge.id },
     });
-    // TODO: Trigger a notification to the user (see Real-time guide)
-    console.log(`User ${userId} earned badge: ${badgeName}`);
   }
 }
 
-// --- In the chapter progress update API route ---
-if (updatedProgress.isCompleted) {
-  await awardPoints(userId, 10); // Award 10 points for chapter completion
-
-  // Check for course completion badge
-  const courseChapters = await db.chapter.count({ where: { courseId: params.courseId, isPublished: true } });
-  const completedChapters = await db.userProgress.count({
-    where: { userId, chapter: { courseId: params.courseId }, isCompleted: true },
+// Get user profile with points and badges
+export async function getUserProfile(userId: string) {
+  return await db.userProfile.findUnique({
+    where: { userId },
+    include: {
+      earnedBadges: {
+        include: { badge: true }
+      }
+    }
   });
+}
+
+// Get leaderboard of top users
+export async function getLeaderboard(limit = 10) {
+  return await db.userProfile.findMany({
+    take: limit,
+    orderBy: { points: 'desc' },
+    include: {
+      earnedBadges: {
+        include: { badge: true }
+      }
+    }
+  });
+}
+```
+
+### 3.3 Integration Points
+
+Integrate gamification into existing actions:
+
+#### Chapter Completion
+
+```typescript
+// In chapter progress update API route
+if (updatedProgress.isCompleted) {
+  // Award points for chapter completion
+  await awardPoints(userId, 10);
+  
+  // Check for course completion
+  const courseChapters = await db.chapter.count({ 
+    where: { courseId: params.courseId, isPublished: true } 
+  });
+  
+  const completedChapters = await db.userProgress.count({
+    where: { 
+      userId, 
+      chapter: { courseId: params.courseId }, 
+      isCompleted: true 
+    },
+  });
+  
   if (courseChapters === completedChapters) {
-    await awardPoints(userId, 50); // Bonus points for course completion
+    // Award bonus points and badge for course completion
+    await awardPoints(userId, 50);
     await checkAndAwardBadge(userId, "Course Completer");
   }
 }
 ```
 
-## 4. Frontend Display
+## 4. Frontend Components
 
-- **User Profile Page**: Create or enhance a user profile/dashboard page to display:
-    - Current points total.
-    - Earned badges (fetch from `UserBadge` relation).
-    - Optionally, current level and progress to the next level.
-- **Badge Component**: A component to display a badge icon and its name/description (e.g., in the profile or as tooltips).
-- **Leaderboard Component (Optional)**: If implementing leaderboards:
-    - Create an API endpoint to fetch top users based on points (e.g., `GET /api/leaderboard?period=weekly`).
-    - Create a component to display the leaderboard.
-- **Notifications**: Use a notification system (e.g., `react-hot-toast` already in use, potentially combined with WebSockets) to inform users immediately when they earn points or badges.
+### 4.1 Core Components
 
-## 5. API Endpoints (Read)
+1. **UserProfileAvatar**: Enhanced avatar with level indicator
+2. **BadgesDisplay**: Grid of earned badges with tooltips
+3. **PointsDisplay**: Shows user points with award icon
+4. **Notifications**: Toast notifications for earned rewards
 
-Create API routes to fetch gamification data for the frontend:
+### 4.2 Pages
 
-- **Get User Profile/Gamification Data**: `GET /api/users/me/profile` (or similar) to fetch points and earned badges for the logged-in user.
-- **Get All Badges**: `GET /api/badges` to display a list of all available badges.
-- **Get Leaderboard**: `GET /api/leaderboard` (as mentioned above).
+1. **Profile Page**: Shows user's points, level, and earned badges
+2. **Leaderboard Page**: Ranks users by points with their badges and levels
 
-## 6. Balancing and Tuning
+## 5. API Endpoints
 
-- **Monitor Engagement**: Observe how users interact with the gamification system.
-- **Adjust Points/Criteria**: Be prepared to adjust point values and badge criteria based on user feedback and engagement data to keep the system motivating but achievable.
+Create API routes to fetch gamification data:
 
-## 7. Testing
+1. **GET /api/gamification/profile**: Fetch current user's profile with points and badges
+2. **GET /api/badges**: List all available badges
+3. **GET /api/leaderboard**: Get top users ranked by points
 
-- Test all point-awarding actions.
-- Verify badge criteria logic and ensure badges are awarded correctly (and only once per user).
-- Test the display of points and badges on the profile page.
-- Test leaderboard logic if implemented.
-- Test notifications for earning rewards. 
+## 6. Testing Checklist
+
+- [ ] Points awarded for completing chapters (10 points)
+- [ ] Bonus points awarded for completing courses (50 points)
+- [ ] Points awarded for posting comments (5 points)
+- [ ] Badges awarded only once per user
+- [ ] Profile page shows correct points and badges
+- [ ] Leaderboard correctly ranks users
+- [ ] Notifications appear when rewards are earned
+
+## 7. Future Enhancements
+
+1. **Time-based Leaderboards**: Weekly/monthly rankings
+2. **Achievement Tiers**: Bronze/silver/gold badge levels
+3. **Streaks**: Track daily login streaks
+4. **Social Sharing**: Share badges on social media
+5. **Customization**: Select badge display preferences 

@@ -35,9 +35,54 @@ async function main() {
     prisma.chapter.deleteMany({}),
     prisma.course.deleteMany({}),
     prisma.category.deleteMany({}),
+    prisma.userBadge.deleteMany({}),
+    prisma.badge.deleteMany({}),
+    prisma.userProfile.deleteMany({}),
   ]);
 
   console.log('✅ Database cleared');
+
+  // Create badge definitions
+  const badges = [
+    {
+      name: "First Course Completed",
+      description: "Completed your first course",
+      iconUrl: "/badges/course-completed.svg",
+      criteria: "Complete all chapters in a course"
+    },
+    {
+      name: "Knowledge Explorer",
+      description: "Completed 5 different courses",
+      iconUrl: "/badges/knowledge-explorer.svg",
+      criteria: "Complete 5 different courses"
+    },
+    {
+      name: "Engaged Learner",
+      description: "Posted your first comment",
+      iconUrl: "/badges/engaged-learner.svg",
+      criteria: "Post a comment on any course content"
+    },
+    {
+      name: "Fast Learner",
+      description: "Completed a course in under 24 hours",
+      iconUrl: "/badges/fast-learner.svg",
+      criteria: "Complete all chapters of a course within 24 hours of purchase"
+    },
+    {
+      name: "Streak Master",
+      description: "Logged in for 7 consecutive days",
+      iconUrl: "/badges/streak-master.svg", 
+      criteria: "Log in to the platform for 7 days in a row"
+    }
+  ];
+
+  const createdBadges = await Promise.all(
+    badges.map(badge => 
+      prisma.badge.create({ data: badge })
+    )
+  );
+
+  console.log(`✅ Created ${createdBadges.length} badge definitions`);
 
   // Create categories
   const categories = [

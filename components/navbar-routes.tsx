@@ -1,13 +1,14 @@
 "use client";
 
-import { UserButton, useAuth } from "@clerk/nextjs";
+import { useAuth } from "@clerk/nextjs";
 import { usePathname } from "next/navigation";
-import { LogOut, Award } from "lucide-react";
+import { LogOut, Award, Trophy, User } from "lucide-react";
 import Link from "next/link";
 
 import { Button } from "@/components/ui/button";
 import { isTeacher } from "@/lib/teacher";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { UserAvatarDropdown } from "@/components/gamification/user-avatar-dropdown";
 
 import { SearchInput } from "./search-input";
 
@@ -19,6 +20,8 @@ export const NavbarRoutes = () => {
   const isCoursePage = pathname?.includes("/courses");
   const isSearchPage = pathname === "/search";
   const isVerifyPage = pathname === "/verify-certificate";
+  const isProfilePage = pathname === "/profile";
+  const isLeaderboardPage = pathname === "/leaderboard";
 
   return (
     <>
@@ -36,6 +39,25 @@ export const NavbarRoutes = () => {
             </Button>
           </Link>
         )}
+
+        {!isLeaderboardPage && (
+          <Link href="/leaderboard">
+            <Button size="sm" variant="ghost" className="text-xs sm:text-sm flex items-center">
+              <Trophy className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+              <span className="hidden sm:inline">Leaderboard</span>
+            </Button>
+          </Link>
+        )}
+
+        {!isProfilePage && (
+          <Link href="/profile">
+            <Button size="sm" variant="ghost" className="text-xs sm:text-sm flex items-center">
+              <User className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+              <span className="hidden sm:inline">Profile</span>
+            </Button>
+          </Link>
+        )}
+
         {isTeacherPage || isCoursePage ? (
           <Link href="/">
             <Button size="sm" variant="ghost" className="text-xs sm:text-sm">
@@ -51,9 +73,7 @@ export const NavbarRoutes = () => {
           </Link>
         ) : null}
         <ThemeToggle />
-        <UserButton
-          afterSignOutUrl="/"
-        />
+        <UserAvatarDropdown />
       </div>
     </>
   )

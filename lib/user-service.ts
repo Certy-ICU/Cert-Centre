@@ -30,6 +30,23 @@ export const syncCurrentUser = async () => {
     },
   });
   
+  // Ensure user profile exists for gamification
+  await db.userProfile.upsert({
+    where: {
+      userId: user.id,
+    },
+    update: {
+      username: dbUser.name,
+      imageUrl: dbUser.imageUrl,
+    },
+    create: {
+      userId: user.id,
+      points: 0,
+      username: dbUser.name,
+      imageUrl: dbUser.imageUrl,
+    },
+  });
+  
   return dbUser;
 };
 

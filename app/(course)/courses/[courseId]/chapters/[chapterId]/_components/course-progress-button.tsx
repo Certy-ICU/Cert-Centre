@@ -8,6 +8,7 @@ import toast from "react-hot-toast";
 
 import { Button } from "@/components/ui/button";
 import { useConfettiStore } from "@/hooks/use-confetti-store";
+import { showPointsNotification } from "@/components/gamification/badge-notification";
 
 interface CourseProgressButtonProps {
   chapterId: string;
@@ -34,8 +35,15 @@ export const CourseProgressButton = ({
         isCompleted: !isCompleted
       });
 
-      if (!isCompleted && !nextChapterId) {
-        confetti.onOpen();
+      if (!isCompleted) {
+        // Show a points notification
+        showPointsNotification(10, "Chapter completed");
+        
+        if (!nextChapterId) {
+          confetti.onOpen();
+          // If this is the last chapter in the course, show a bonus points notification
+          showPointsNotification(50, "Course completed");
+        }
       }
 
       if (!isCompleted && nextChapterId) {

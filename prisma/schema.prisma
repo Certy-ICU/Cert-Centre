@@ -182,3 +182,42 @@ model Comment {
   @@index([userId])
   @@index([parentId])
 }
+
+// Models for gamification system
+model UserProfile {
+  userId    String @id // Clerk User ID
+  points    Int    @default(0)
+  username  String?
+  imageUrl  String?
+
+  earnedBadges UserBadge[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Badge {
+  id          String @id @default(uuid())
+  name        String @unique
+  description String
+  iconUrl     String // URL to the badge icon
+  criteria    String // Description of how to earn it (for display)
+
+  users UserBadge[]
+
+  createdAt DateTime @default(now())
+}
+
+model UserBadge {
+  id        String   @id @default(uuid())
+  userId    String
+  user      UserProfile @relation(fields: [userId], references: [userId], onDelete: Cascade)
+  badgeId   String
+  badge     Badge    @relation(fields: [badgeId], references: [id], onDelete: Cascade)
+
+  earnedAt DateTime @default(now())
+
+  @@unique([userId, badgeId]) // User can earn each badge only once
+  @@index([userId])
+  @@index([badgeId])
+}

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs";
 import { db } from "@/lib/db";
 import { syncCurrentUser } from "@/lib/user-service";
+import { awardPoints, checkAndAwardBadge } from "@/lib/gamification-service";
 
 // GET endpoint to fetch discussions for a course
 export async function GET(
@@ -111,6 +112,23 @@ export async function POST(
         },
       },
     });
+
+    // Award points for creating a discussion (but not for replies)
+    if (!parentId) {
+      await awardPoints(userId, 5, "Started a discussion");
+      
+      // Check for first comment badge
+      const commentCount = await db.comment.count({
+        where: {
+          userId,
+          parentId: null // Only count top-level comments
+        }
+      });
+      
+      if (commentCount === 1) {
+        await checkAndAwardBadge(userId, "Engaged Learner");
+      }
+    }
 
     return NextResponse.json(comment);
   } catch (error) {
