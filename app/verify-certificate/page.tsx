@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { CheckCircle, XCircle } from "lucide-react";
 import axios from "axios";
 import { toast } from "react-hot-toast";
+import { cn } from "@/lib/utils";
 
 interface VerificationResult {
   valid: boolean;
@@ -67,8 +68,8 @@ const VerifyCertificatePage = () => {
   return (
     <div className="max-w-5xl mx-auto p-6">
       <h1 className="text-3xl font-bold mb-6">Verify Certificate</h1>
-      <div className="bg-white rounded-lg shadow-md p-6">
-        <p className="text-slate-700 mb-6">
+      <div className="bg-white dark:bg-slate-800 rounded-lg shadow-md p-6 dark:shadow-slate-900/30">
+        <p className="text-slate-700 dark:text-slate-300 mb-6">
           Enter the certificate ID to verify its authenticity.
         </p>
         
@@ -78,7 +79,7 @@ const VerifyCertificatePage = () => {
               value={certificateId}
               onChange={(e) => setCertificateId(e.target.value)}
               placeholder="Enter certificate ID"
-              className="md:w-2/3"
+              className="md:w-2/3 dark:bg-slate-900 dark:border-slate-700"
             />
             <Button
               type="submit"
@@ -91,32 +92,37 @@ const VerifyCertificatePage = () => {
         </form>
         
         {result && (
-          <div className={`mt-8 p-4 rounded-md ${result.valid ? 'bg-green-50 border border-green-200' : 'bg-red-50 border border-red-200'}`}>
+          <div className={cn(
+            "mt-8 p-4 rounded-md",
+            result.valid 
+              ? 'bg-green-50 border border-green-200 dark:bg-green-900/20 dark:border-green-800' 
+              : 'bg-red-50 border border-red-200 dark:bg-red-900/20 dark:border-red-800'
+          )}>
             <div className="flex items-center gap-x-2 mb-4">
               {result.valid ? (
-                <CheckCircle className="h-6 w-6 text-green-600" />
+                <CheckCircle className="h-6 w-6 text-green-600 dark:text-green-500" />
               ) : (
-                <XCircle className="h-6 w-6 text-red-600" />
+                <XCircle className="h-6 w-6 text-red-600 dark:text-red-500" />
               )}
-              <h2 className="text-xl font-medium">
+              <h2 className="text-xl font-medium dark:text-white">
                 {result.valid ? "Certificate is Valid" : "Certificate Verification Failed"}
               </h2>
             </div>
             
             {result.valid ? (
               <div className="space-y-2">
-                <p className="text-slate-700">
+                <p className="text-slate-700 dark:text-slate-300">
                   <span className="font-semibold">Course:</span> {result.courseTitle}
                 </p>
-                <p className="text-slate-700">
+                <p className="text-slate-700 dark:text-slate-300">
                   <span className="font-semibold">Issue Date:</span> {result.issueDate?.toLocaleDateString()}
                 </p>
-                <p className="text-slate-700">
+                <p className="text-slate-700 dark:text-slate-300">
                   <span className="font-semibold">Certificate ID:</span> {certificateId}
                 </p>
               </div>
             ) : (
-              <p className="text-red-700">{result.message}</p>
+              <p className="text-red-700 dark:text-red-400">{result.message}</p>
             )}
           </div>
         )}

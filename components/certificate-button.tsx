@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { CheckCircle, Download } from "lucide-react";
 import { useState } from "react";
 import { toast } from "react-hot-toast";
+import { cn } from "@/lib/utils";
 
 interface CertificateButtonProps {
   courseId: string;
@@ -46,7 +47,12 @@ export const CertificateButton = ({ courseId, isCompleted }: CertificateButtonPr
       onClick={onDownload} 
       size="sm" 
       disabled={isLoading}
-      className="w-full md:w-auto bg-green-600 hover:bg-green-700"
+      className={cn(
+        "w-full md:w-auto",
+        "bg-green-600 hover:bg-green-700",
+        "dark:bg-green-700 dark:hover:bg-green-600",
+        "text-white"
+      )}
     >
       <Download className="h-4 w-4 mr-2" />
       Download Certificate
