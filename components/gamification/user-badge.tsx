@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import Image from 'next/image';
-import { Share2 } from 'lucide-react';
+import { Share2, Lock, Award, BookOpen, MessageSquare, Zap, Flame } from 'lucide-react';
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
@@ -84,6 +84,7 @@ export function UserBadge({
   className,
 }: UserBadgeProps) {
   const [showShareOptions, setShowShareOptions] = useState(false);
+  const [imageError, setImageError] = useState(false);
   
   // Use badge's tier if provided, otherwise use the prop
   const badgeTier = badge.tier || tier || "default";
@@ -123,6 +124,39 @@ export function UserBadge({
   
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://app.example.com";
   
+  // Size mapping for lock icon and fallback icons
+  const iconSizeMap = {
+    xs: "h-2.5 w-2.5",
+    sm: "h-3 w-3",
+    md: "h-4 w-4",
+    lg: "h-5 w-5",
+    xl: "h-6 w-6",
+  };
+  
+  // Determine the fallback icon based on badge name (for if image fails to load)
+  const getFallbackIcon = () => {
+    const nameLower = badge.name.toLowerCase();
+    
+    if (nameLower.includes('course') || nameLower.includes('learn')) {
+      return <BookOpen className={cn("text-foreground", iconSizeMap[size || "md"])} />;
+    } else if (nameLower.includes('engage') || nameLower.includes('comment')) {
+      return <MessageSquare className={cn("text-foreground", iconSizeMap[size || "md"])} />;
+    } else if (nameLower.includes('fast') || nameLower.includes('speed')) {
+      return <Zap className={cn("text-foreground", iconSizeMap[size || "md"])} />;
+    } else if (nameLower.includes('streak')) {
+      return <Flame className={cn("text-foreground", iconSizeMap[size || "md"])} />;
+    } else {
+      return <Award className={cn("text-foreground", iconSizeMap[size || "md"])} />;
+    }
+  };
+  
+  // Validate icon URL
+  const hasValidIconUrl = badge.iconUrl && (
+    badge.iconUrl.startsWith('/') || 
+    badge.iconUrl.startsWith('http') || 
+    badge.iconUrl.startsWith('data:')
+  );
+  
   const BadgeComponent = (
     <div
       className={cn(
@@ -130,16 +164,30 @@ export function UserBadge({
         className
       )}
     >
-      {badge.iconUrl ? (
+      {hasValidIconUrl && !imageError ? (
         <Image
           src={badge.iconUrl}
           alt={badge.name}
           fill
           className="object-cover"
+          onError={() => setImageError(true)}
+          sizes={`(max-width: 768px) 100vw, ${
+            size === "xl" ? "80px" : 
+            size === "lg" ? "56px" : 
+            size === "md" ? "40px" : 
+            size === "sm" ? "28px" : "20px"
+          }`}
         />
       ) : (
-        <div className="w-full h-full flex items-center justify-center text-xs font-medium">
-          {badge.name.charAt(0).toUpperCase()}
+        <div className="w-full h-full flex items-center justify-center">
+          {getFallbackIcon()}
+        </div>
+      )}
+      
+      {/* Lock overlay for unearned badges */}
+      {badge.earned === false && (
+        <div className="absolute inset-0 flex items-center justify-center bg-black/30 rounded-full">
+          <Lock className={cn("text-white", iconSizeMap[size || "md"])} />
         </div>
       )}
     </div>
@@ -162,6 +210,9 @@ export function UserBadge({
                   </span>
                 </h3>
                 <p className="text-xs text-muted-foreground">{badge.description}</p>
+                {badge.earned === false && (
+                  <p className="text-xs font-medium text-amber-600 mt-1">Complete requirements to unlock</p>
+                )}
               </div>
             </TooltipContent>
           </Tooltip>
@@ -170,7 +221,8 @@ export function UserBadge({
         BadgeComponent
       )}
 
-      {showShare && userId && (
+      {/* Only show share for earned badges */}
+      {showShare && userId && badge.earned !== false && (
         <>
           <div className="flex items-center justify-center mt-2">
             <Button 

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { pusherClient } from "@/lib/pusher-client";
 import { useUser } from "@clerk/nextjs";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -21,6 +21,8 @@ export const TypingIndicator = ({ chapterId, courseId }: TypingIndicatorProps) =
   const [typingUsers, setTypingUsers] = useState<User[]>([]);
   const { user } = useUser();
   const [showDebug, setShowDebug] = useState(false);
+  // Use a ref to store timeouts for each user
+  const timeoutsRef = useRef<Record<string, NodeJS.Timeout>>({});
 
   useEffect(() => {
     if (!user) return;
@@ -48,10 +50,15 @@ export const TypingIndicator = ({ chapterId, courseId }: TypingIndicatorProps) =
     // More verbose debugging for typing events
     channel.bind('user:typing', (data: { user: User }) => {
       console.log('Received typing event:', data);
-      console.log('Current typing users:', typingUsers);
       console.log('Received user ID:', data.user.id, 'Current user ID:', user.id);
       
-      // Update state with the typing user
+      // Don't show typing indicator for current user
+      if (data.user.id === user.id) {
+        console.log('Ignoring own typing event');
+        return;
+      }
+      
+      // Update state with the typing user - using functional update to avoid stale state
       setTypingUsers(prev => {
         // Check if user is already in the list
         if (!prev.some(u => u.id === data.user.id)) {
@@ -62,20 +69,33 @@ export const TypingIndicator = ({ chapterId, courseId }: TypingIndicatorProps) =
         return prev;
       });
       
-      // Automatically remove user after 3 seconds of inactivity
-      setTimeout(() => {
+      // Clear existing timeout for this user if it exists
+      if (timeoutsRef.current[data.user.id]) {
+        clearTimeout(timeoutsRef.current[data.user.id]);
+      }
+      
+      // Set new timeout to remove user after 3 seconds of inactivity
+      timeoutsRef.current[data.user.id] = setTimeout(() => {
         console.log('Removing user from typing list (timed out):', data.user.name || 'Anonymous');
         setTypingUsers(prev => prev.filter(u => u.id !== data.user.id));
+        delete timeoutsRef.current[data.user.id];
       }, 3000);
     });
 
     // Cleanup
     return () => {
       console.log('TypingIndicator unmounting, cleaning up');
+      
+      // Clear all timeouts
+      Object.values(timeoutsRef.current).forEach(timeout => {
+        clearTimeout(timeout);
+      });
+      timeoutsRef.current = {};
+      
       channel.unbind_all();
       pusherClient.unsubscribe(channelName);
     };
-  }, [chapterId, user, typingUsers]);
+  }, [chapterId, user]); // Remove typingUsers from dependency array
 
   const handleTyping = async () => {
     if (!user) return;
@@ -170,17 +190,35 @@ export const TypingIndicator = ({ chapterId, courseId }: TypingIndicatorProps) =
 export const useTypingHandler = (chapterId: string, courseId: string) => {
   const { user } = useUser();
   const [typingTimeout, setTypingTimeout] = useState<NodeJS.Timeout | null>(null);
+  const typingTimeRef = useRef<number>(0);
 
   const handleTyping = () => {
     if (!user) return;
-    console.log('useTypingHandler: handleTyping called');
     
-    // Clear existing timeout
-    if (typingTimeout) {
-      clearTimeout(typingTimeout);
+    const now = Date.now();
+    
+    // Don't send typing events too frequently (debounce)
+    // Only send if it's been more than 1 second since the last event
+    if (now - typingTimeRef.current < 1000) {
+      if (typingTimeout) {
+        clearTimeout(typingTimeout);
+      }
+      
+      const timeout = setTimeout(() => {
+        sendTypingEvent();
+        setTypingTimeout(null);
+      }, 1000);
+      
+      setTypingTimeout(timeout);
+      return;
     }
     
-    // Send typing indicator
+    // Send typing event immediately
+    sendTypingEvent();
+    typingTimeRef.current = now;
+  };
+  
+  const sendTypingEvent = () => {
     console.log('useTypingHandler: Sending typing indicator');
     
     const userData = {
@@ -204,15 +242,16 @@ export const useTypingHandler = (chapterId: string, courseId: string) => {
     })
     .then(data => console.log('useTypingHandler: Typing indicator sent successfully', data))
     .catch(error => console.error('useTypingHandler: Failed to send typing indicator:', error));
-    
-    // Set new timeout
-    const timeout = setTimeout(() => {
-      console.log('useTypingHandler: Typing timeout cleared');
-      setTypingTimeout(null);
-    }, 2000);
-    
-    setTypingTimeout(timeout);
   };
+
+  // Clean up on unmount
+  useEffect(() => {
+    return () => {
+      if (typingTimeout) {
+        clearTimeout(typingTimeout);
+      }
+    };
+  }, [typingTimeout]);
 
   return handleTyping;
 }; 

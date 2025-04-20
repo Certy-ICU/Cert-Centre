@@ -2,6 +2,7 @@ import { auth } from "@clerk/nextjs";
 import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
 import { formatDistanceToNow } from "date-fns";
+import { revalidatePath } from "next/cache";
 
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -64,20 +65,42 @@ const ReportedCommentsPage = async () => {
   const handleClearReport = async (commentId: string) => {
     "use server";
     
-    await db.comment.update({
-      where: { id: commentId },
-      data: { 
-        moderation: null
-      }
+    // First check if the comment exists
+    const comment = await db.comment.findUnique({
+      where: { id: commentId }
     });
+    
+    // Only attempt to update if comment exists
+    if (comment) {
+      await db.comment.update({
+        where: { id: commentId },
+        data: { 
+          moderation: null
+        }
+      });
+    }
+    
+    // Revalidate the page to refresh the data
+    revalidatePath("/teacher/reported-comments");
   };
 
   const handleDeleteComment = async (commentId: string) => {
     "use server";
     
-    await db.comment.delete({
+    // First check if the comment exists
+    const comment = await db.comment.findUnique({
       where: { id: commentId }
     });
+    
+    // Only attempt to delete if comment exists
+    if (comment) {
+      await db.comment.delete({
+        where: { id: commentId }
+      });
+    }
+    
+    // Revalidate the page to refresh the data
+    revalidatePath("/teacher/reported-comments");
   };
 
   return (

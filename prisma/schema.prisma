@@ -189,6 +189,9 @@ model UserProfile {
   points    Int    @default(0)
   totalPointsEarned Int @default(0) // Track total points earned over time (doesn't decrease when points are spent)
   // level     Int    @default(1) // Optional
+  
+  // Admin flag
+  isAdmin   Boolean @default(false)
 
   // Optional: If syncing Clerk data
   username  String?

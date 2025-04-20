@@ -5,10 +5,12 @@ import { PointsDisplay } from "@/components/gamification/points-display";
 import { UserProfileAvatar } from "@/components/gamification/user-profile-avatar";
 import { StreakDisplay } from "@/components/gamification/streak-display";
 import { UserBadge } from "@/components/gamification/user-badge";
+import { ProfileBadgesDisplay } from "@/components/gamification/profile-badges-display";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Trophy, Award, GitFork } from "lucide-react";
+import { db } from "@/lib/db";
 
 const ProfilePage = async () => {
   const { userId } = auth();
@@ -29,6 +31,61 @@ const ProfilePage = async () => {
       </div>
     );
   }
+  
+  // Get all badges from the database
+  let allBadges = await db.badge.findMany({
+    orderBy: {
+      tier: "asc"
+    }
+  });
+  
+  // If no badges exist at all, fetch from the seed endpoint
+  if (allBadges.length === 0) {
+    try {
+      // Call the seed API to create sample badges
+      const seedResponse = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/gamification/badges/seed`, {
+        method: 'GET',
+        cache: 'no-store',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+      
+      if (seedResponse.ok) {
+        // Refresh the badges list after seeding
+        allBadges = await db.badge.findMany({
+          orderBy: { tier: "asc" }
+        });
+      }
+    } catch (error) {
+      console.error("Failed to seed badges:", error);
+    }
+  }
+  
+  // Get user's earned badges IDs for filtering
+  const earnedBadgeIds = profile.earnedBadges.map(eb => eb.badge.id);
+  
+  // Create earned and unearned badge lists
+  const earnedBadges = profile.earnedBadges.map(eb => ({
+    id: eb.badge.id,
+    name: eb.badge.name,
+    description: eb.badge.description,
+    iconUrl: eb.badge.iconUrl,
+    tier: eb.badge.tier,
+    earned: true,
+    earnedDate: eb.earnedAt
+  }));
+  
+  const unearnedBadges = allBadges
+    .filter(badge => !earnedBadgeIds.includes(badge.id))
+    .map(badge => ({
+      id: badge.id,
+      name: badge.name,
+      description: badge.description,
+      iconUrl: badge.iconUrl,
+      tier: badge.tier,
+      earned: false
+    }));
   
   // Sort badges by tier (gold, silver, bronze)
   const sortedBadges = [...profile.earnedBadges].sort((a, b) => {
@@ -126,45 +183,10 @@ const ProfilePage = async () => {
             </TabsList>
             
             <TabsContent value="badges" className="mt-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Your Badges</CardTitle>
-                  <CardDescription>
-                    Badges you've earned through your learning journey
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  {sortedBadges.length > 0 ? (
-                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-                      {sortedBadges.map(userBadge => (
-                        <div key={userBadge.id} className="flex flex-col items-center text-center p-2">
-                          <UserBadge 
-                            badge={{
-                              id: userBadge.badge.id,
-                              name: userBadge.badge.name,
-                              description: userBadge.badge.description,
-                              iconUrl: userBadge.badge.iconUrl,
-                              tier: userBadge.badge.tier,
-                              earnedDate: userBadge.earnedAt
-                            }}
-                            size="lg"
-                          />
-                          <p className="mt-2 text-sm font-medium">{userBadge.badge.name}</p>
-                          <p className="text-xs text-muted-foreground mt-1">
-                            {new Date(userBadge.earnedAt).toLocaleDateString()}
-                          </p>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="text-center py-12">
-                      <Award className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-                      <h3 className="text-lg font-medium">No badges yet</h3>
-                      <p className="text-muted-foreground mt-1">Complete courses and activities to earn badges</p>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
+              <ProfileBadgesDisplay 
+                earnedBadges={earnedBadges}
+                unearnedBadges={unearnedBadges}
+              />
             </TabsContent>
             
             <TabsContent value="achievements" className="mt-6">

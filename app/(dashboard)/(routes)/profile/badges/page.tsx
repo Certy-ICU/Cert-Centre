@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { toast } from 'react-hot-toast';
 import { UserBadge } from '@/components/gamification/user-badge';
-import { Loader2, InfoIcon } from 'lucide-react';
+import { Loader2, InfoIcon, Lock } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { 
   Tooltip,
@@ -32,22 +32,35 @@ interface UserBadgeType {
   badge: Badge;
 }
 
+interface BadgeWithStatus extends Badge {
+  earned: boolean;
+  earnedDate: Date | null;
+}
+
 export default function BadgeManagementPage() {
   const [badges, setBadges] = useState<UserBadgeType[]>([]);
   const [featuredBadges, setFeaturedBadges] = useState<UserBadgeType[]>([]);
+  const [allBadges, setAllBadges] = useState<BadgeWithStatus[]>([]);
   const [loading, setLoading] = useState(true);
   const [currentTab, setCurrentTab] = useState('all');
+  const [viewMode, setViewMode] = useState('earned');
   
   useEffect(() => {
     const fetchBadges = async () => {
       setLoading(true);
       try {
-        // Replace with actual API endpoint
-        const res = await fetch('/api/gamification/profile');
-        const data = await res.json();
+        // Fetch profile with earned badges
+        const profileRes = await fetch('/api/gamification/profile');
+        const profileData = await profileRes.json();
         
-        setBadges(data.earnedBadges || []);
-        setFeaturedBadges(data.featuredBadges || []);
+        setBadges(profileData.earnedBadges || []);
+        setFeaturedBadges(profileData.featuredBadges || []);
+        
+        // Fetch all badges with earned status
+        const allBadgesRes = await fetch('/api/gamification/badges/with-status');
+        const allBadgesData = await allBadgesRes.json();
+        
+        setAllBadges(allBadgesData || []);
       } catch (error) {
         console.error("Failed to load badges:", error);
         toast.error("Failed to load badges");
@@ -159,8 +172,15 @@ export default function BadgeManagementPage() {
   };
   
   const filterBadgesByTier = (tier: string) => {
-    if (tier === 'all') return badges;
-    return badges.filter(badge => badge.badge.tier === tier);
+    if (tier === 'all') {
+      return viewMode === 'earned' 
+        ? badges 
+        : allBadges.filter(badge => !badge.earned);
+    }
+    
+    return viewMode === 'earned'
+      ? badges.filter(badge => badge.badge.tier === tier)
+      : allBadges.filter(badge => !badge.earned && badge.tier === tier);
   };
   
   if (loading) {
@@ -181,20 +201,34 @@ export default function BadgeManagementPage() {
             <Card>
               <CardHeader>
                 <div className="flex items-center justify-between">
-                  <CardTitle>Your Badges</CardTitle>
+                  <div>
+                    <CardTitle>Your Badges</CardTitle>
+                    <Tabs defaultValue="earned" value={viewMode} onValueChange={setViewMode} className="mt-2">
+                      <TabsList className="mb-4">
+                        <TabsTrigger value="earned">Earned</TabsTrigger>
+                        <TabsTrigger value="available">Available</TabsTrigger>
+                      </TabsList>
+                    </Tabs>
+                  </div>
                   <TooltipProvider>
                     <Tooltip>
                       <TooltipTrigger asChild>
                         <InfoIcon className="h-4 w-4 text-muted-foreground" />
                       </TooltipTrigger>
                       <TooltipContent className="max-w-[250px]">
-                        <p>Drag badges to the Featured Badges section to display them on your profile.</p>
+                        <p>
+                          {viewMode === 'earned' 
+                            ? "Drag badges to the Featured Badges section to display them on your profile."
+                            : "These badges are available to earn through your activities on the platform."}
+                        </p>
                       </TooltipContent>
                     </Tooltip>
                   </TooltipProvider>
                 </div>
                 <CardDescription>
-                  Drag badges to the right to feature them on your profile
+                  {viewMode === 'earned' 
+                    ? "Drag badges to the right to feature them on your profile"
+                    : "Complete activities to unlock these badges"}
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -207,50 +241,74 @@ export default function BadgeManagementPage() {
                   </TabsList>
                   
                   <TabsContent value={currentTab}>
-                    <Droppable droppableId="all-badges" direction="horizontal" isDropDisabled={false}>
-                      {(provided) => (
-                        <div
-                          {...provided.droppableProps}
-                          ref={provided.innerRef}
-                          className="flex flex-wrap gap-4 min-h-[150px]"
-                        >
-                          {filterBadgesByTier(currentTab).map((badge, index) => (
-                            <Draggable 
-                              key={badge.id} 
-                              draggableId={badge.id} 
-                              index={index}
-                            >
-                              {(provided) => (
-                                <div
-                                  ref={provided.innerRef}
-                                  {...provided.draggableProps}
-                                  {...provided.dragHandleProps}
-                                  className="badge-item"
-                                >
-                                  <UserBadge 
-                                    badge={badge.badge} 
-                                    size="md"
-                                    customization={{
-                                      isFavorite: badge.isFavorite,
-                                      displayColor: badge.displayColor
-                                    }}
-                                    onCustomize={() => toggleFavorite(badge.id, badge.isFavorite)}
-                                  />
-                                </div>
-                              )}
-                            </Draggable>
-                          ))}
-                          {provided.placeholder}
-                          {filterBadgesByTier(currentTab).length === 0 && (
-                            <p className="text-sm text-muted-foreground">
-                              {currentTab === 'all' 
-                                ? "You haven't earned any badges yet." 
-                                : `You haven't earned any ${currentTab} badges yet.`}
-                            </p>
-                          )}
-                        </div>
-                      )}
-                    </Droppable>
+                    {viewMode === 'earned' ? (
+                      <Droppable droppableId="all-badges" direction="horizontal" isDropDisabled={false}>
+                        {(provided) => (
+                          <div
+                            {...provided.droppableProps}
+                            ref={provided.innerRef}
+                            className="flex flex-wrap gap-4 min-h-[150px]"
+                          >
+                            {filterBadgesByTier(currentTab).map((badge, index) => (
+                              <Draggable 
+                                key={badge.id} 
+                                draggableId={badge.id} 
+                                index={index}
+                              >
+                                {(provided) => (
+                                  <div
+                                    ref={provided.innerRef}
+                                    {...provided.draggableProps}
+                                    {...provided.dragHandleProps}
+                                    className="badge-item"
+                                  >
+                                    <UserBadge 
+                                      badge={badge.badge} 
+                                      size="md"
+                                      customization={{
+                                        isFavorite: badge.isFavorite,
+                                        displayColor: badge.displayColor
+                                      }}
+                                      onCustomize={() => toggleFavorite(badge.id, badge.isFavorite)}
+                                    />
+                                  </div>
+                                )}
+                              </Draggable>
+                            ))}
+                            {provided.placeholder}
+                            {filterBadgesByTier(currentTab).length === 0 && (
+                              <p className="text-sm text-muted-foreground">
+                                {currentTab === 'all' 
+                                  ? "You haven't earned any badges yet." 
+                                  : `You haven't earned any ${currentTab} badges yet.`}
+                              </p>
+                            )}
+                          </div>
+                        )}
+                      </Droppable>
+                    ) : (
+                      // Display unearned badges (not draggable)
+                      <div className="flex flex-wrap gap-4 min-h-[150px]">
+                        {filterBadgesByTier(currentTab).map((badge) => (
+                          <div key={badge.id} className="badge-item">
+                            <UserBadge 
+                              badge={{
+                                ...badge,
+                                earned: false
+                              }}
+                              size="md"
+                            />
+                          </div>
+                        ))}
+                        {filterBadgesByTier(currentTab).length === 0 && (
+                          <p className="text-sm text-muted-foreground">
+                            {currentTab === 'all' 
+                              ? "No more badges to earn in this category!" 
+                              : `No more ${currentTab} badges to earn!`}
+                          </p>
+                        )}
+                      </div>
+                    )}
                   </TabsContent>
                 </Tabs>
               </CardContent>
