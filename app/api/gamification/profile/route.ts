@@ -14,7 +14,6 @@ export async function GET() {
     const profile = await db.userProfile.findUnique({
       where: { userId },
       select: {
-        id: true,
         userId: true,
         points: true,
         currentStreak: true,

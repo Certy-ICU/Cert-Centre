@@ -8,6 +8,7 @@ import QueryProvider from '@/components/providers/query-provider'
 import { ThemeProvider } from '@/components/providers/theme-provider'
 import { BadgeAchievementProvider } from '@/providers/badge-achievement-provider'
 import { PWAInitializer } from '@/components/pwa/pwa-init'
+import { GamificationClientInit } from '@/components/gamification/GamificationClientInit'
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -44,6 +45,7 @@ export default function RootLayout({
                 <ConfettiProvider />
                 <ToastProvider />
                 <PWAInitializer />
+                <GamificationClientInit />
                 {children}
               </BadgeAchievementProvider>
             </QueryProvider>

@@ -11,6 +11,13 @@ interface BadgeNotificationProps {
   };
 }
 
+interface PointsNotificationProps {
+  title?: string;
+  points: number;
+  message?: string;
+  duration?: number;
+}
+
 /**
  * Show a notification when a user earns a badge
  */
@@ -42,8 +49,21 @@ export const showBadgeNotification = (badge: BadgeNotificationProps["badge"]) =>
 
 /**
  * Show a notification when a user earns points
+ * @param options Points notification configuration or just the points value
  */
-export const showPointsNotification = (points: number, reason?: string) => {
+export const showPointsNotification = (options: PointsNotificationProps | number, reason?: string) => {
+  // Handle the legacy format where we just pass the points directly
+  const config: PointsNotificationProps = typeof options === 'number' 
+    ? { points: options, message: reason ? reason : undefined } 
+    : options;
+    
+  const { 
+    title = 'Points Earned!',
+    points,
+    message = `You've earned ${points} points`,
+    duration = 3000
+  } = config;
+  
   toast.custom((t) => (
     <div className={`${t.visible ? 'animate-enter' : 'animate-leave'} max-w-md w-full bg-white dark:bg-slate-800 shadow-lg rounded-lg pointer-events-auto flex`}>
       <div className="flex-1 w-0 p-4">
@@ -54,8 +74,8 @@ export const showPointsNotification = (points: number, reason?: string) => {
             </div>
           </div>
           <div className="ml-3 flex-1">
-            <p className="text-sm font-medium text-gray-900 dark:text-gray-100">Points Earned!</p>
-            <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">{`You've earned ${points} points${reason ? `: ${reason}` : ''}`}</p>
+            <p className="text-sm font-medium text-gray-900 dark:text-gray-100">{title}</p>
+            <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">{message}</p>
           </div>
         </div>
       </div>
@@ -66,5 +86,5 @@ export const showPointsNotification = (points: number, reason?: string) => {
         >Dismiss</button>
       </div>
     </div>
-  ), { duration: 3000 });
+  ), { duration });
 }; 

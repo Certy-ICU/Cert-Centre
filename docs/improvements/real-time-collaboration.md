@@ -23,7 +23,7 @@ NEXT_PUBLIC_PUSHER_CLUSTER=your_cluster # Public cluster for client-side
 ## 2. Install Dependencies
 
 ```bash
-npm install pusher pusher-js
+pnpm install pusher pusher-js
 ```
 
 ## 3. Initialize Pusher Server-Side

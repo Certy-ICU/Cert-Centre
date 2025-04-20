@@ -1,4 +1,7 @@
+'use server';
+
 import { db } from "@/lib/db";
+import { auth } from '@clerk/nextjs';
 
 type PointActivityType = 
   | "ACCOUNT_CREATION"
@@ -163,4 +166,135 @@ export const awardCertificatePoints = async (userId: string, certificateId: stri
     activityType: "CERTIFICATE_EARNED",
     idempotencyKey: `certificate_earned_${userId}_${certificateId}`
   });
-}; 
+};
+
+/**
+ * Award points to a user (server action for client components)
+ * @param amount Number of points to award
+ * @param reason Optional reason for awarding points
+ * @returns Object with success status and awarded points
+ */
+export async function awardUserPoints(amount: number, reason?: string) {
+  try {
+    const { userId } = auth();
+    
+    if (!userId) {
+      console.error('[AWARD_POINTS_ACTION] No userId found');
+      return { success: false, error: 'User not authenticated' };
+    }
+    
+    console.log(`[AWARD_POINTS_ACTION] Awarding ${amount} points to user ${userId} for: ${reason || 'unspecified'}`);
+    
+    // Get or create user profile
+    const userProfile = await db.userProfile.upsert({
+      where: { userId },
+      update: {
+        points: { increment: amount }
+      },
+      create: {
+        userId,
+        points: amount
+      }
+    });
+    
+    console.log(`[AWARD_POINTS_ACTION] Successfully awarded points. New total: ${userProfile.points}`);
+    
+    return { success: true, points: amount, totalPoints: userProfile.points };
+  } catch (error) {
+    console.error('[AWARD_POINTS_ACTION]', error);
+    return { success: false, error: 'Failed to award points' };
+  }
+}
+
+/**
+ * Award daily login points to a user (server action for client components)
+ * @returns Object with success status and awarded points
+ */
+export async function handleDailyLoginPoints() {
+  try {
+    const { userId } = auth();
+    
+    if (!userId) {
+      console.error('[DAILY_LOGIN_POINTS] No userId found');
+      return { success: false, error: 'User not authenticated' };
+    }
+    
+    // Get user profile
+    const userProfile = await db.userProfile.findUnique({
+      where: { userId }
+    });
+    
+    // Check if we need to award points (hasn't logged in today)
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    // If user logged in today already, don't award points again
+    if (userProfile?.lastLoginDate) {
+      const lastLogin = new Date(userProfile.lastLoginDate);
+      lastLogin.setHours(0, 0, 0, 0);
+      
+      if (lastLogin.getTime() === today.getTime()) {
+        console.log('[DAILY_LOGIN_POINTS] User already received daily points today');
+        return { success: true, alreadyAwarded: true, points: 0 };
+      }
+    }
+    
+    // Calculate streak
+    let currentStreak = 1;
+    let longestStreak = userProfile?.longestStreak || 0;
+    
+    if (userProfile?.lastLoginDate) {
+      const lastLogin = new Date(userProfile.lastLoginDate);
+      const yesterday = new Date(today);
+      yesterday.setDate(yesterday.getDate() - 1);
+      
+      // If logged in yesterday, increment streak
+      if (lastLogin.setHours(0, 0, 0, 0) === yesterday.setHours(0, 0, 0, 0)) {
+        currentStreak = (userProfile.currentStreak || 0) + 1;
+      } else {
+        // Streak broken, reset to 1
+        currentStreak = 1;
+      }
+      
+      // Update longest streak if needed
+      if (currentStreak > longestStreak) {
+        longestStreak = currentStreak;
+      }
+    }
+    
+    // Award points - base 5 points + 1 for each day in streak (up to +5 max)
+    const streakBonus = Math.min(currentStreak - 1, 5);
+    const pointsToAward = 5 + streakBonus;
+    
+    // Update user profile
+    const updatedProfile = await db.userProfile.upsert({
+      where: { userId },
+      update: {
+        points: { increment: pointsToAward },
+        lastLoginDate: new Date(),
+        currentStreak,
+        longestStreak
+      },
+      create: {
+        userId,
+        points: pointsToAward,
+        lastLoginDate: new Date(),
+        currentStreak: 1,
+        longestStreak: 1
+      }
+    });
+    
+    console.log(`[DAILY_LOGIN_POINTS] Awarded ${pointsToAward} points (including ${streakBonus} streak bonus). Streak: ${currentStreak}`);
+    
+    return { 
+      success: true, 
+      points: pointsToAward, 
+      totalPoints: updatedProfile.points,
+      streak: currentStreak,
+      streakBonus
+    };
+  } catch (error) {
+    console.error('[DAILY_LOGIN_POINTS_ERROR]', error);
+    return { success: false, error: 'Failed to award points' };
+  }
+} 

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs";
 import { db } from "@/lib/db";
 import { syncCurrentUser } from "@/lib/user-service";
+import { pusherServer } from "@/lib/pusher";
 
 // PATCH endpoint to update a comment
 export async function PATCH(
@@ -61,6 +62,18 @@ export async function PATCH(
       },
     });
 
+    // Trigger Pusher event for real-time update
+    const channelName = `chapter-${params.chapterId}-comments`;
+    console.log(`Triggering 'comment:update' event on channel: ${channelName}`);
+    try {
+      await pusherServer.trigger(channelName, 'comment:update', {
+        comment: updatedComment
+      });
+      console.log('Pusher event triggered successfully');
+    } catch (error) {
+      console.error('Failed to trigger Pusher event:', error);
+    }
+
     return NextResponse.json(updatedComment);
   } catch (error) {
     console.error("[COMMENT_PATCH]", error);
@@ -113,6 +126,18 @@ export async function DELETE(
         id: params.commentId,
       },
     });
+
+    // Trigger Pusher event for real-time delete
+    const channelName = `chapter-${params.chapterId}-comments`;
+    console.log(`Triggering 'comment:delete' event on channel: ${channelName}`);
+    try {
+      await pusherServer.trigger(channelName, 'comment:delete', {
+        commentId: params.commentId
+      });
+      console.log('Pusher event triggered successfully');
+    } catch (error) {
+      console.error('Failed to trigger Pusher event:', error);
+    }
 
     return new NextResponse(null, { status: 204 });
   } catch (error) {

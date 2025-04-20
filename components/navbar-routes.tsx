@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { isTeacher } from "@/lib/teacher";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { UserAvatarDropdown } from "@/components/gamification/user-avatar-dropdown";
+import { ActiveUsersGlobalCounter } from "@/components/ActiveUsersGlobalCounter";
 
 import { SearchInput } from "./search-input";
 
@@ -31,6 +32,8 @@ export const NavbarRoutes = () => {
         </div>
       )}
       <div className="flex gap-x-1 sm:gap-x-2 ml-auto items-center">
+        <ActiveUsersGlobalCounter />
+        
         {!isVerifyPage && (
           <Link href="/verify-certificate">
             <Button size="sm" variant="ghost" className="text-xs sm:text-sm flex items-center">

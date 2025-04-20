@@ -187,11 +187,13 @@ model Comment {
 model UserProfile {
   userId    String @id // Clerk User ID
   points    Int    @default(0)
+  totalPointsEarned Int @default(0) // Track total points earned over time (doesn't decrease when points are spent)
   // level     Int    @default(1) // Optional
 
   // Optional: If syncing Clerk data
   username  String?
   imageUrl  String?
+  email     String?
 
   earnedBadges UserBadge[]
 
@@ -208,6 +210,20 @@ model UserProfile {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+// Model to track point activity
+model PointActivity {
+  id            String   @id @default(uuid())
+  userId        String
+  points        Int
+  reason        String
+  activityType  String
+  idempotencyKey String? @unique
+  createdAt     DateTime
+
+  @@index([userId])
+  @@index([createdAt])
 }
 
 model Badge {
@@ -258,5 +274,20 @@ model LeaderboardEntry {
   @@unique([userId, period, weekNumber, monthNumber, year])
   @@index([period, year, weekNumber])
   @@index([period, year, monthNumber])
+  @@index([userId])
+}
+
+// Push notification subscription model for web push notifications
+model PushSubscription {
+  id             String    @id @default(uuid())
+  userId         String
+  endpoint       String    @unique
+  expirationTime String?
+  keys           Json      // p256dh and auth keys for the subscription
+  userAgent      String?   // Browser/device information
+  
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
   @@index([userId])
 }

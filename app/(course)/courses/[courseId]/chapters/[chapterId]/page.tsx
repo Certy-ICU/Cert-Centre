@@ -7,6 +7,11 @@ import { Banner } from "@/components/banner";
 import { Separator } from "@/components/ui/separator";
 import { Preview } from "@/components/preview";
 import { SocialShare } from "@/components/social-share";
+import { PusherConnectionStatus } from "@/components/PusherConnectionStatus";
+import { RealtimeEventIndicator } from "@/components/RealtimeEventIndicator";
+import { ActiveViewersNotification } from "@/components/ActiveViewersNotification";
+import { ActiveViewersCounter } from "@/components/ActiveViewersCounter";
+import { LiveCollaborationBanner } from "@/components/LiveCollaborationBanner2";
 
 import { VideoPlayer } from "./_components/video-player";
 import { CourseEnrollButton } from "./_components/course-enroll-button";
@@ -77,11 +82,15 @@ const ChapterIdPage = async ({
           />
         </div>
         <div>
+          <LiveCollaborationBanner chapterId={params.chapterId} className="mx-4" />
           <div className="p-4 flex flex-col gap-2">
             <div className="flex flex-col md:flex-row items-start md:items-center justify-between">
-              <h2 className="text-2xl font-semibold mb-2 md:mb-0">
-                {chapter.title}
-              </h2>
+              <div className="flex items-center gap-2">
+                <h2 className="text-2xl font-semibold mb-2 md:mb-0">
+                  {chapter.title}
+                </h2>
+                <ActiveViewersCounter chapterId={params.chapterId} className="mb-2 md:mb-0" />
+              </div>
               {purchase ? (
                 <CourseProgressButton
                   chapterId={params.chapterId}
@@ -149,6 +158,9 @@ const ChapterIdPage = async ({
           </div>
         </div>
       </div>
+      <PusherConnectionStatus />
+      <RealtimeEventIndicator />
+      <ActiveViewersNotification chapterId={params.chapterId} />
     </div>
    );
 }

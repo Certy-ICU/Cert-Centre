@@ -209,3 +209,38 @@ For questions, support, or feedback, please contact:
 - Email: support@certcentre.com
 - Twitter: [@CertCentre](https://twitter.com/certcentre)
 - Website: [www.certcentre.com](https://www.certcentre.com)
+
+## Real-time Collaboration Features
+
+The application now includes real-time collaboration features powered by Pusher:
+
+1. **Real-time Comments** - Comments appear immediately for all users without the need to refresh. This includes:
+   - New comments and replies
+   - Comment updates
+   - Comment deletions
+
+2. **User Presence** - Shows who's currently viewing a chapter, allowing users to see who else is online.
+
+3. **Typing Indicators** - Displays when other users are typing in the comment section, creating a more interactive discussion environment.
+
+### Setting Up Pusher
+
+To use these real-time features, you need to set up a Pusher account:
+
+1. Create an account on [Pusher.com](https://pusher.com/) and create a new "Channels" app
+2. Add your Pusher credentials to the `.env` file:
+
+```env
+PUSHER_APP_ID=your_app_id
+PUSHER_KEY=your_key
+PUSHER_SECRET=your_secret
+PUSHER_CLUSTER=your_cluster
+NEXT_PUBLIC_PUSHER_KEY=your_key
+NEXT_PUBLIC_PUSHER_CLUSTER=your_cluster
+```
+
+### Real-time Architecture
+
+- **Server-side Events** - API endpoints trigger Pusher events after database operations
+- **Client-side Subscriptions** - Components subscribe to relevant channels and update the UI in real-time
+- **Private & Presence Channels** - Used for secure user-specific features like typing indicators and presence

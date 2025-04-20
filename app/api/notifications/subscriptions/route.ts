@@ -77,20 +77,23 @@ export async function DELETE(req: NextRequest) {
     
     if (!body.endpoint) {
       return NextResponse.json(
-        { error: 'Invalid request, endpoint is required' },
+        { error: 'Invalid request: endpoint is required' },
         { status: 400 }
       );
     }
     
     // Delete the subscription from the database
-    await db.pushSubscription.deleteMany({
+    const deletedSubscription = await db.pushSubscription.deleteMany({
       where: {
-        userId,
-        endpoint: body.endpoint
+        endpoint: body.endpoint,
+        userId // Ensure user can only delete their own subscriptions
       }
     });
     
-    return NextResponse.json({ success: true });
+    return NextResponse.json({ 
+      success: true, 
+      deleted: deletedSubscription.count > 0 
+    });
     
   } catch (error) {
     console.error('Error deleting push subscription:', error);

@@ -9,6 +9,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { toast } from "react-hot-toast";
 import { CommentDisplay } from "./CommentDisplay";
 import { showPointsNotification } from "@/components/gamification/badge-notification";
+import { pusherClient } from "@/lib/pusher-client";
+import { TypingIndicator, useTypingHandler } from "./TypingIndicator";
 
 interface UserData {
   id: string;
@@ -53,6 +55,26 @@ export const CommentSection = ({
   
   const router = useRouter();
   const { user, isSignedIn } = useUser();
+  const handleTyping = useTypingHandler(chapterId, courseId);
+
+  // Debug Pusher connection
+  useEffect(() => {
+    console.log('Pusher key:', process.env.NEXT_PUBLIC_PUSHER_KEY);
+    console.log('Pusher cluster:', process.env.NEXT_PUBLIC_PUSHER_CLUSTER);
+    
+    // Add connection event listeners
+    pusherClient.connection.bind('connected', () => {
+      console.log('Connected to Pusher successfully!');
+    });
+    
+    pusherClient.connection.bind('error', (err) => {
+      console.error('Pusher connection error:', err);
+    });
+    
+    return () => {
+      pusherClient.connection.unbind_all();
+    };
+  }, []);
 
   const fetchComments = async () => {
     try {
@@ -71,6 +93,97 @@ export const CommentSection = ({
 
   useEffect(() => {
     fetchComments();
+
+    // Set up Pusher real-time subscription
+    const channelName = `chapter-${chapterId}-comments`;
+    console.log(`Subscribing to channel: ${channelName}`);
+    const channel = pusherClient.subscribe(channelName);
+
+    // Debug subscription
+    channel.bind('pusher:subscription_succeeded', () => {
+      console.log('Successfully subscribed to', channelName);
+    });
+
+    channel.bind('pusher:subscription_error', (error) => {
+      console.error('Failed to subscribe to', channelName, error);
+    });
+
+    // Handle new comments
+    channel.bind('comment:new', (data: { comment: Comment }) => {
+      console.log('Received comment:new event', data);
+      setComments((prevComments) => [data.comment, ...prevComments]);
+    });
+
+    // Handle comment replies
+    channel.bind('comment:reply', (data: { comment: Comment }) => {
+      console.log('Received comment:reply event', data);
+      setComments((prevComments) => {
+        // Find parent comment and add reply
+        return prevComments.map((comment) => {
+          if (comment.id === data.comment.parentId) {
+            return {
+              ...comment,
+              replies: [...(comment.replies || []), data.comment]
+            };
+          }
+          return comment;
+        });
+      });
+    });
+
+    // Handle comment updates
+    channel.bind('comment:update', (data: { comment: Comment }) => {
+      console.log('Received comment:update event', data);
+      setComments((prevComments) => {
+        return prevComments.map((comment) => {
+          // Check if this is the updated comment
+          if (comment.id === data.comment.id) {
+            return { ...comment, ...data.comment };
+          }
+          
+          // Check if the updated comment is in replies
+          if (comment.replies && comment.replies.length > 0) {
+            return {
+              ...comment,
+              replies: comment.replies.map((reply) => 
+                reply.id === data.comment.id ? { ...reply, ...data.comment } : reply
+              )
+            };
+          }
+          
+          return comment;
+        });
+      });
+    });
+
+    // Handle comment deletions
+    channel.bind('comment:delete', (data: { commentId: string }) => {
+      console.log('Received comment:delete event', data);
+      setComments((prevComments) => {
+        // Filter out deleted comments
+        const filteredComments = prevComments.filter(
+          (comment) => comment.id !== data.commentId
+        );
+        
+        // Also filter out deleted comments from replies
+        return filteredComments.map((comment) => {
+          if (comment.replies && comment.replies.length > 0) {
+            return {
+              ...comment,
+              replies: comment.replies.filter((reply) => reply.id !== data.commentId)
+            };
+          }
+          return comment;
+        });
+      });
+    });
+
+    // Cleanup function
+    return () => {
+      console.log(`Unsubscribing from channel: ${channelName}`);
+      channel.unbind_all();
+      pusherClient.unsubscribe(channelName);
+    };
   }, [courseId, chapterId]);
 
   const onSubmit = async (e: React.FormEvent) => {
@@ -89,7 +202,7 @@ export const CommentSection = ({
       // Show points notification for adding a comment
       showPointsNotification(5, "Posted a comment");
       
-      fetchComments();
+      // No need to manually fetch comments anymore as Pusher will update the UI
     } catch (error) {
       toast.error("Failed to add comment");
       console.error(error);
@@ -104,7 +217,7 @@ export const CommentSection = ({
         `/api/courses/${courseId}/chapters/${chapterId}/comments/${commentId}`
       );
       toast.success("Comment deleted");
-      fetchComments();
+      // No need to manually fetch comments anymore as Pusher will update the UI
     } catch (error) {
       toast.error("Failed to delete comment");
       console.error(error);
@@ -115,11 +228,16 @@ export const CommentSection = ({
     <div className="mt-8">
       <h2 className="text-2xl font-semibold mb-4">Discussion</h2>
       
+      <TypingIndicator chapterId={chapterId} courseId={courseId} />
+      
       {isSignedIn ? (
         <form onSubmit={onSubmit} className="mb-6">
           <Textarea
             value={commentText}
-            onChange={(e) => setCommentText(e.target.value)}
+            onChange={(e) => {
+              setCommentText(e.target.value);
+              handleTyping(); // Trigger typing indicator
+            }}
             placeholder="Add a comment..."
             className="mb-2"
             disabled={isSubmitting}

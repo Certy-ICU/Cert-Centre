@@ -92,7 +92,7 @@ You can modify the following variables in the seed scripts to adjust the amount 
 const NUM_TEACHERS = 2;
 const NUM_STUDENTS = 50;
 const COURSES_PER_TEACHER = 5;
-const CHAPTERS_PER_COURSE = 10;
+const CHAPTERS_PER_COURSE = 5;
 const MAX_PURCHASES_PER_STUDENT = 5;
 const COMPLETION_RATE = 0.7; // 70% chance a student completes a chapter they've started
 ```
@@ -101,7 +101,7 @@ const COMPLETION_RATE = 0.7; // 70% chance a student completes a chapter they've
 ```typescript
 const DEMO_TEACHER_ID = 'demo-teacher-123';
 const COURSES_PER_TEACHER = 8;
-const CHAPTERS_PER_COURSE = 10;
+const CHAPTERS_PER_COURSE = 5;
 const NUM_STUDENTS = 100;
 const MAX_PURCHASES_PER_STUDENT = 5;
 const COMPLETION_RATE = 0.7;

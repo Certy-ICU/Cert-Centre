@@ -21,14 +21,29 @@ export const getCourses = async ({
   categoryId
 }: GetCourses): Promise<CourseWithProgressWithCategory[]> => {
   try {
+    // Create base query
+    const where = {
+      isPublished: true,
+    };
+    
+    // Add title filter only if title is provided
+    if (title) {
+      // @ts-ignore - Add to where clause
+      where.title = {
+        contains: title,
+      };
+    }
+    
+    // Add category filter only if categoryId is provided
+    if (categoryId && categoryId !== "all") {
+      // @ts-ignore - Add to where clause
+      where.categoryId = categoryId;
+    }
+    
+    console.log("[GET_COURSES] Query with filters:", JSON.stringify(where));
+    
     const courses = await db.course.findMany({
-      where: {
-        isPublished: true,
-        title: {
-          contains: title,
-        },
-        categoryId,
-      },
+      where,
       include: {
         category: true,
         chapters: {
@@ -49,6 +64,8 @@ export const getCourses = async ({
         createdAt: "desc",
       }
     });
+    
+    console.log(`[GET_COURSES] Found ${courses.length} courses`);
 
     const coursesWithProgress: CourseWithProgressWithCategory[] = await Promise.all(
       courses.map(async course => {

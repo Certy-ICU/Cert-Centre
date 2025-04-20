@@ -3,6 +3,7 @@ import { auth } from "@clerk/nextjs";
 import { db } from "@/lib/db";
 import { syncCurrentUser } from "@/lib/user-service";
 import { awardPoints, checkAndAwardBadge } from "@/lib/gamification-service";
+import { pusherServer } from "@/lib/pusher";
 
 // GET endpoint to fetch comments for a chapter
 export async function GET(
@@ -134,6 +135,20 @@ export async function POST(
       if (commentCount === 1) {
         await checkAndAwardBadge(userId, "Engaged Learner");
       }
+    }
+
+    // Trigger Pusher event for real-time updates
+    const channelName = `chapter-${params.chapterId}-comments`;
+    const eventName = parentId ? 'comment:reply' : 'comment:new';
+
+    console.log(`Triggering Pusher event: ${eventName} on channel: ${channelName}`);
+    try {
+      await pusherServer.trigger(channelName, eventName, {
+        comment
+      });
+      console.log('Pusher event triggered successfully');
+    } catch (error) {
+      console.error('Failed to trigger Pusher event:', error);
     }
 
     return NextResponse.json(comment);
