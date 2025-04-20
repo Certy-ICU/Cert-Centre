@@ -1,112 +1,82 @@
-# Implementing Real-time Collaboration (WebSockets)
+# Real-time Collaboration Features
 
-This guide outlines how to add real-time features (like live comment updates or presence indicators) to the LMS using WebSockets, potentially with a service like Pusher or a self-hosted solution.
+This document outlines the real-time collaboration features implemented in our learning platform using Pusher for WebSockets functionality.
 
-We'll use Pusher (via `pusher` and `pusher-js`) as an example due to its ease of integration with Next.js.
+## Configuration and Setup
 
-## 1. Set Up Pusher Account
-
-- Create an account on [Pusher.com](https://pusher.com/).
-- Create a new "Channels" app and note down your app ID, key, secret, and cluster.
-- Add these credentials to your `.env` file:
+### Environment Variables
+The following environment variables are required for Pusher integration:
 
 ```env
-# .env (add these)
+# Pusher configuration
 PUSHER_APP_ID=your_app_id
 PUSHER_KEY=your_key
 PUSHER_SECRET=your_secret
 PUSHER_CLUSTER=your_cluster
-NEXT_PUBLIC_PUSHER_KEY=your_key # Public key for client-side
-NEXT_PUBLIC_PUSHER_CLUSTER=your_cluster # Public cluster for client-side
+NEXT_PUBLIC_PUSHER_KEY=your_key
+NEXT_PUBLIC_PUSHER_CLUSTER=your_cluster
 ```
 
-## 2. Install Dependencies
-
+### Dependencies
+The project uses the following Pusher-related packages:
 ```bash
 pnpm install pusher pusher-js
 ```
 
-## 3. Initialize Pusher Server-Side
+## Core Implementation
 
-Create a utility file to initialize the Pusher server instance.
+### Server-Side Setup (lib/pusher.ts)
+The server-side Pusher instance handles channel authorization for private and presence channels:
 
 ```typescript
-// lib/pusher.ts
-import PusherServer from "pusher";
+import Pusher from "pusher";
+import { auth } from "@clerk/nextjs";
 
-export const pusherServer = new PusherServer({
+// Initialize Pusher server instance
+export const pusherServer = new Pusher({
   appId: process.env.PUSHER_APP_ID!,
   key: process.env.PUSHER_KEY!,
   secret: process.env.PUSHER_SECRET!,
   cluster: process.env.PUSHER_CLUSTER!,
   useTLS: true,
 });
-```
 
-## 4. Trigger Events from Backend
+export const authorizeUser = async (socketId: string, channelName: string) => {
+  const { userId } = auth();
 
-Modify your API endpoints (e.g., the comment creation endpoint) to trigger Pusher events after successful database operations.
-
-```typescript
-// Example: app/api/courses/[courseId]/chapters/[chapterId]/comments/route.ts
-import { NextResponse } from 'next/server';
-import { auth } from '@clerk/nextjs';
-import { db } from '@/lib/db'; // Assuming db is your prisma client instance
-import { pusherServer } from '@/lib/pusher'; // Import pusher server
-
-export async function POST(
-  req: Request,
-  { params }: { params: { courseId: string; chapterId: string } }
-) {
-  try {
-    const { userId } = auth();
-    const { text, parentId } = await req.json();
-
-    if (!userId) {
-      return new NextResponse("Unauthorized", { status: 401 });
-    }
-
-    const newComment = await db.comment.create({
-      data: {
-        text,
-        userId,
-        chapterId: params.chapterId,
-        parentId,
-      },
-      // Include necessary relations if needed for the event payload
-      include: {
-        // Potentially include minimal user info if you have a local User model
-      }
-    });
-
-    // Trigger Pusher event
-    // Channel name: e.g., "chapter-comments-{chapterId}"
-    // Event name: e.g., "comment:new"
-    const channelName = `chapter-${params.chapterId}-comments`;
-    const eventName = 'comment:new';
-
-    await pusherServer.trigger(channelName, eventName, {
-      comment: newComment, // Send the newly created comment data
-    });
-
-    return NextResponse.json(newComment);
-
-  } catch (error) {
-    console.error("[COMMENTS_POST]", error);
-    return new NextResponse("Internal Error", { status: 500 });
+  if (!userId) {
+    return new Response("Unauthorized", { status: 401 });
   }
-}
 
-// Similarly, trigger events like 'comment:update' and 'comment:delete'
-// in the PATCH and DELETE handlers.
+  // Handle presence channels
+  if (channelName.startsWith("presence-")) {
+    const user = { id: userId };
+    const authResponse = pusherServer.authorizeChannel(
+      socketId,
+      channelName,
+      { user_id: userId, user_info: user }
+    );
+    return new Response(JSON.stringify(authResponse));
+  }
+
+  // Handle private channels
+  if (channelName.startsWith("private-")) {
+    const authResponse = pusherServer.authorizeChannel(
+      socketId,
+      channelName,
+      { user_id: userId }
+    );
+    return new Response(JSON.stringify(authResponse));
+  }
+
+  return new Response("Unauthorized", { status: 401 });
+};
 ```
 
-## 5. Initialize Pusher Client-Side
-
-Create a utility file for the client-side Pusher instance.
+### Client-Side Setup (lib/pusher-client.ts)
+The client-side Pusher instance is used by components to subscribe to channels:
 
 ```typescript
-// lib/pusher-client.ts (Note: Separate from server file)
 import PusherClient from "pusher-js";
 
 // Ensure environment variables are loaded correctly client-side
@@ -115,106 +85,122 @@ const pusherCluster = process.env.NEXT_PUBLIC_PUSHER_CLUSTER;
 
 if (!pusherKey || !pusherCluster) {
   console.error("Pusher client environment variables not set!");
-  // Handle the error appropriately - maybe return a dummy client or throw
 }
 
 export const pusherClient = new PusherClient(
-  pusherKey!, // Add non-null assertion or handle error
+  pusherKey!, 
   {
-    cluster: pusherCluster!, // Add non-null assertion or handle error
-    // Add authEndpoint if using private/presence channels
-    // authEndpoint: '/api/pusher/auth',
+    cluster: pusherCluster!,
+    authEndpoint: "/api/pusher/auth",
   }
 );
 ```
 
-## 6. Subscribe to Events in Frontend
-
-In the relevant client component (e.g., `<CommentSection>`), use `useEffect` to subscribe to the Pusher channel and bind to events.
+### Authentication Endpoint (app/api/pusher/auth/route.ts)
+This endpoint handles authentication for private and presence channels:
 
 ```typescript
-// components/comment-section.tsx (Example)
-'use client';
+import { NextResponse } from "next/server";
+import { authorizeUser } from "@/lib/pusher";
 
-import { useEffect, useState } from 'react';
-import { pusherClient } from '@/lib/pusher-client';
-import { Comment } from '@prisma/client'; // Assuming Comment type
+export async function POST(req: Request) {
+  try {
+    const data = await req.json();
+    const { socket_id, channel_name } = data;
 
-interface CommentSectionProps {
-  chapterId: string;
-  initialComments: Comment[]; // Pass initial comments from server component
+    if (!socket_id || !channel_name) {
+      return new NextResponse("Missing required parameters", { status: 400 });
+    }
+
+    return await authorizeUser(socket_id, channel_name);
+  } catch (error) {
+    console.error("PUSHER_AUTH_ERROR", error);
+    return new NextResponse("Internal Error", { status: 500 });
+  }
 }
-
-export default function CommentSection({ chapterId, initialComments }: CommentSectionProps) {
-  const [comments, setComments] = useState<Comment[]>(initialComments);
-
-  useEffect(() => {
-    // Ensure pusherClient is initialized before subscribing
-    if (!pusherClient) return;
-
-    const channelName = `chapter-${chapterId}-comments`;
-    const channel = pusherClient.subscribe(channelName);
-
-    // Bind to the 'comment:new' event
-    channel.bind('comment:new', (data: { comment: Comment }) => {
-      // Add the new comment to the state
-      // Consider fetching user details if not included in the event payload
-      setComments((prevComments) => [...prevComments, data.comment]);
-      // Optionally scroll to the new comment or show a notification
-    });
-
-    // Bind to 'comment:update' and 'comment:delete' events similarly
-    channel.bind('comment:update', (data: { comment: Comment }) => {
-      setComments((prevComments) =>
-        prevComments.map((c) => (c.id === data.comment.id ? data.comment : c))
-      );
-    });
-
-    channel.bind('comment:delete', (data: { commentId: string }) => {
-      setComments((prevComments) =>
-        prevComments.filter((c) => c.id !== data.commentId)
-      );
-    });
-
-    // Cleanup function to unsubscribe when component unmounts
-    return () => {
-      pusherClient.unsubscribe(channelName);
-      // Consider unbinding specific events if necessary
-      // channel.unbind('comment:new');
-    };
-
-  }, [chapterId]); // Re-run effect if chapterId changes
-
-  // ... Rest of the component rendering comments and form ...
-
-  return (
-    <div>
-      {/* Render comments state */}
-      {comments.map((comment) => (
-        <div key={comment.id}>{comment.text}</div> // Replace with actual CommentDisplay
-      ))}
-      {/* Render CommentForm */}
-    </div>
-  );
-}
-
 ```
 
-## 7. Private and Presence Channels (Optional)
+## Implemented Components
 
-- **Private Channels**: If you need to broadcast events only to authenticated users (e.g., user-specific notifications), use private channels (prefixed with `private-`). This requires an authentication endpoint on your server (`/api/pusher/auth`) that verifies the user (using Clerk) and authorizes their subscription.
-- **Presence Channels**: For features like showing who is currently viewing a chapter (prefixed with `presence-`), use presence channels. These also require an authentication endpoint and allow tracking subscribed users.
+### 1. ActiveViewersCounter
+Displays the number of users currently viewing a specific chapter with a tooltip showing their names.
 
-## 8. Alternative: Self-Hosted WebSockets
+**Key Features:**
+- Uses presence channels (`presence-chapter-{chapterId}`)
+- Shows count with visual indicators
+- Displays list of viewers in tooltip
+- Updates in real-time as users join/leave
 
-- **Libraries**: Use libraries like `socket.io` or `ws` with your Node.js backend (potentially as a separate microservice or integrated into the Next.js custom server if needed, though API routes are generally preferred).
-- **Infrastructure**: Requires managing the WebSocket server, handling connections, scaling, and potentially using Redis for pub/sub across multiple instances.
-- **Complexity**: More complex to set up and manage than using a service like Pusher.
+```typescript
+// Usage in chapter page:
+<ActiveViewersCounter chapterId={params.chapterId} className="mb-2 md:mb-0" />
+```
 
-## 9. Testing
+### 2. ActiveViewersNotification
+Shows a notification when new users join the current chapter.
 
-- Open multiple browser windows/tabs for the same chapter.
-- Post a new comment in one window and verify it appears in real-time in the others.
-- Test updating and deleting comments similarly.
-- Test edge cases like network interruptions and reconnections.
-- Test authentication for private/presence channels if implemented. 
+**Key Features:**
+- Animated notification that appears for 5 seconds
+- Shows user avatars
+- Displays join messages
+- Handles multiple concurrent viewers
+
+### 3. LiveCollaborationBanner
+Displays a banner at the top of the chapter showing who else is viewing the content.
+
+**Key Features:**
+- Persistent presence indicator
+- Shows avatars of active users
+- Displays count for additional users
+- Live activity indicator
+
+### 4. ActiveUsersGlobalCounter
+Shows the total number of users active across the entire platform.
+
+**Key Features:**
+- Uses a global presence channel
+- Displays in the navbar for site-wide visibility
+- Updates in real-time
+
+## Push Notifications
+
+The platform also includes Web Push Notifications for user engagement:
+
+- Supports subscription management with `PushSubscription` model
+- Service worker implementation for receiving push events
+- Admin/instructor controlled notification sending
+- User preference controls
+
+## Implementation Best Practices
+
+1. **Channel Naming Conventions:**
+   - Presence channels: `presence-chapter-{chapterId}`
+   - Global presence: `presence-global`
+   - Private channels: `private-user-{userId}`
+
+2. **Event Binding:**
+   - Use `pusher:subscription_succeeded` for initial data
+   - Handle `pusher:member_added` and `pusher:member_removed` for user presence
+   - Create custom events like `user:active` for specific interactions
+
+3. **Performance Considerations:**
+   - Unbind events and unsubscribe from channels on component unmount
+   - Use `setTimeout` for temporary UI elements
+   - Filter duplicates when processing user lists
+
+## Testing
+
+- Open multiple browser windows/tabs for the same chapter
+- Verify user counts and notifications appear correctly
+- Test presence indicators with different user accounts
+- Test network disconnection recovery
+
+## Extending the Implementation
+
+To add real-time features to other parts of the application:
+
+1. Create presence channels with appropriate naming
+2. Subscribe to these channels in client components
+3. Handle member events for user presence
+4. Add UI components to display real-time information
+5. Implement any necessary server-side authorization 
