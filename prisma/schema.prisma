@@ -31,6 +31,8 @@ model Course {
   updatedAt DateTime @updatedAt
 
   @@index([categoryId])
+  @@index([price])
+  @@index([createdAt])
   @@fulltext([title])
 }
 

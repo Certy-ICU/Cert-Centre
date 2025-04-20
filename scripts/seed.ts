@@ -7,7 +7,7 @@ async function main() {
   try {
     // Get existing categories to avoid duplicates
     const existingCategories = await database.category.findMany();
-    const existingCategoryNames = existingCategories.map(category => category.name);
+    const existingCategoryNames = existingCategories.map((category: { name: string }) => category.name);
     
     // Categories to add
     const categoriesToAdd = [

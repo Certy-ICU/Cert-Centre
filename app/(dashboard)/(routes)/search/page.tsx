@@ -7,11 +7,14 @@ import { getCourses } from "@/actions/get-courses";
 import { CoursesList } from "@/components/courses-list";
 
 import { Categories } from "./_components/categories";
+import { SearchFilters } from "./_components/filters";
 
 interface SearchPageProps {
   searchParams: {
     title: string;
     categoryId: string;
+    priceRange: string;
+    sortBy: string;
   }
 };
 
@@ -44,6 +47,7 @@ const SearchPage = async ({
         <Categories
           items={categories}
         />
+        <SearchFilters />
         <CoursesList items={courses} />
       </div>
     </>

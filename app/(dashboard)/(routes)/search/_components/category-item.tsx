@@ -25,7 +25,10 @@ export const CategoryItem = ({
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  const currentCategoryId = searchParams.get("categoryId");const currentTitle = searchParams.get("title");
+  const currentCategoryId = searchParams.get("categoryId");
+  const currentTitle = searchParams.get("title");
+  const currentPriceRange = searchParams.get("priceRange");
+  const currentSortBy = searchParams.get("sortBy");
 
   const isSelected = currentCategoryId === value;
 
@@ -35,6 +38,8 @@ export const CategoryItem = ({
       query: {
         title: currentTitle,
         categoryId: isSelected ? null : value,
+        priceRange: currentPriceRange,
+        sortBy: currentSortBy
       }
     }, { skipNull: true, skipEmptyString: true });
 

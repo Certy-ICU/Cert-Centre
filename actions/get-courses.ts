@@ -13,12 +13,16 @@ type GetCourses = {
   userId: string;
   title?: string;
   categoryId?: string;
+  priceRange?: string;
+  sortBy?: string;
 };
 
 export const getCourses = async ({
   userId,
   title,
-  categoryId
+  categoryId,
+  priceRange,
+  sortBy = "recent"
 }: GetCourses): Promise<CourseWithProgressWithCategory[]> => {
   try {
     // Create base query
@@ -40,7 +44,53 @@ export const getCourses = async ({
       where.categoryId = categoryId;
     }
     
+    // Add price range filter
+    if (priceRange && priceRange !== "all") {
+      switch (priceRange) {
+        case 'free':
+          // @ts-ignore - Add to where clause
+          where.price = 0;
+          break;
+        case 'paid':
+          // @ts-ignore - Add to where clause
+          where.price = { gt: 0 };
+          break;
+        case 'low':
+          // @ts-ignore - Add to where clause
+          where.price = { gt: 0, lte: 50 };
+          break;
+        case 'medium':
+          // @ts-ignore - Add to where clause
+          where.price = { gt: 50, lte: 100 };
+          break;
+        case 'high':
+          // @ts-ignore - Add to where clause
+          where.price = { gt: 100 };
+          break;
+      }
+    }
+    
     console.log("[GET_COURSES] Query with filters:", JSON.stringify(where));
+    
+    // Determine sorting option
+    let orderBy = {};
+    
+    switch (sortBy) {
+      case 'recent':
+        orderBy = { createdAt: "desc" };
+        break;
+      case 'oldest':
+        orderBy = { createdAt: "asc" };
+        break;
+      case 'priceAsc':
+        orderBy = { price: "asc" };
+        break;
+      case 'priceDesc':
+        orderBy = { price: "desc" };
+        break;
+      default:
+        orderBy = { createdAt: "desc" };
+    }
     
     const courses = await db.course.findMany({
       where,
@@ -60,9 +110,7 @@ export const getCourses = async ({
           }
         }
       },
-      orderBy: {
-        createdAt: "desc",
-      }
+      orderBy
     });
     
     console.log(`[GET_COURSES] Found ${courses.length} courses`);

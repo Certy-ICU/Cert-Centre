@@ -2,104 +2,108 @@
 
 This guide details steps to enhance the search functionality in the LMS, adding features like filtering, sorting, and potentially more sophisticated search logic.
 
-## 1. Refine Existing Search API
+## 1. Refine Existing Search API ✅
 
-The current search seems to be implemented in `app/(dashboard)/(routes)/search/page.tsx` using Prisma's full-text search capabilities on the `Course` model (`@@fulltext([title])` in `schema.prisma`).
+The search implementation has been enhanced in `app/(dashboard)/(routes)/search/page.tsx` and `actions/get-courses.ts` to provide the following functionality:
 
-- **Review API Endpoint**: Identify the API route handling the search query (likely fetching data in the Search page component or via a dedicated API route in `app/api/`).
-- **Add Filters**: Modify the Prisma query in the API route/server component to accept additional parameters for filtering.
-    - **Category Filter**: Allow filtering courses by `categoryId`.
-    - **Price Filter**: Add options to filter by price range (e.g., free, paid tiers).
-    - **Published Status**: Allow filtering by `isPublished` (especially relevant for teacher views).
+- **Enhanced API Query**: Modified the Prisma query in `getCourses` action to accept additional parameters:
+    - **Category Filter** ✅: Filter courses by `categoryId` (already implemented)
+    - **Price Filter** ✅: Added options to filter by price range:
+      - Free courses (`price === 0`)
+      - Paid courses (`price > 0`)
+      - Low-priced courses (`0 < price <= 50`)
+      - Medium-priced courses (`50 < price <= 100`)
+      - High-priced courses (`price > 100`)
+    - **Sorting** ✅: Implemented sorting options
+      - By recency (newest first) - default
+      - By oldest first
+      - By price (low to high)
+      - By price (high to low)
 
-  ```typescript
-  // Example Prisma query modification (in API route or Server Component)
-  import { PrismaClient } from '@prisma/client';
-  const prisma = new PrismaClient();
+```typescript
+// Implementation in actions/get-courses.ts
+switch (priceRange) {
+  case 'free':
+    where.price = 0;
+    break;
+  case 'paid':
+    where.price = { gt: 0 };
+    break;
+  case 'low':
+    where.price = { gt: 0, lte: 50 };
+    break;
+  // ... additional price ranges
+}
 
-  async function searchCourses(query: string, categoryId?: string, price?: string /* ... other filters */) {
-    const courses = await prisma.course.findMany({
-      where: {
-        isPublished: true, // Assuming general search shows only published
-        title: {
-          search: query, // Using full-text search
-        },
-        categoryId: categoryId ? categoryId : undefined,
-        // Add more filter conditions based on parameters
-        price: price === 'free' ? 0 : (price === 'paid' ? { gt: 0 } : undefined),
-      },
-      include: {
-        category: true,
-        chapters: {
-          where: {
-            isPublished: true,
-          },
-          select: {
-            id: true,
-          }
-        },
-        purchases: {
-          where: {
-            // Potentially filter purchases based on logged-in user if needed
-          }
-        }
-      },
-      orderBy: {
-        // Add sorting options later
-        createdAt: 'desc',
-      }
-    });
-    return courses;
-  }
-  ```
+// Sorting implementation
+switch (sortBy) {
+  case 'recent':
+    orderBy = { createdAt: "desc" };
+    break;
+  case 'oldest':
+    orderBy = { createdAt: "asc" };
+    break;
+  // ... additional sorting options
+}
+```
 
-- **Add Sorting**: Implement sorting options (e.g., relevance, newest, price, popularity).
-    - Modify the Prisma query to include `orderBy` based on input parameters.
-    - Popularity might require tracking view counts or enrollment numbers (adding new fields to the `Course` model).
+## 2. Updated Frontend Search UI ✅
 
-## 2. Update Frontend Search UI
+- **Created `SearchFilters` Component** ✅: Added a new component at `app/(dashboard)/(routes)/search/_components/filters.tsx` with:
+    - Dropdown for price range filtering (All, Free, Paid, $0-$50, $50-$100, $100+)
+    - Dropdown for sorting options (Most Recent, Oldest First, Price: Low to High, Price: High to Low)
 
-- **Modify `components/search-input.tsx`**: Enhance this component or create new components to include filter and sort controls.
-    - Add dropdowns or multi-select components (using Shadcn UI) for categories, price ranges, etc.
-    - Add a dropdown for sorting options.
-- **Update State Management**: Manage the state for the search query, selected filters, and sorting options in the search page component (`app/(dashboard)/(routes)/search/page.tsx`).
-- **Trigger Search**: Modify the search trigger logic (`useEffect` in `search-input.tsx` or similar) to include the selected filters and sort parameters when fetching data.
-- **Update URL Params**: Use `useRouter` and `useSearchParams` to reflect the search query, filters, and sort options in the URL for shareability and browser history.
+- **Updated Search Page** ✅: Modified `app/(dashboard)/(routes)/search/page.tsx` to include the new filters component and pass the filter parameters to the `getCourses` function.
 
-## 3. Consider Advanced Search Logic (Optional)
+- **Updated URL Parameters** ✅: All components (search input, category selector, filter dropdowns) now preserve the other search parameters when updating their own parameter.
 
-- **Tagging System**: Implement a tagging system for courses.
-    - Add a `Tag` model to `schema.prisma` with a many-to-many relation to `Course`.
-    - Update the UI for teachers to add tags to courses.
-    - Modify the search API to allow filtering by tags.
-- **Weighted Search**: For more relevance-based sorting, consider moving beyond basic full-text search.
-    - Explore Prisma's relevance scoring if available for MySQL or look into dedicated search engines.
-- **Dedicated Search Engine (e.g., Algolia, Elasticsearch)**:
-    - **Benefits**: Offers more advanced features like typo tolerance, faceting (dynamic filtering based on results), custom ranking, synonyms, and better performance for large datasets.
-    - **Implementation**: Requires setting up the search engine, indexing course data from Prisma (using webhooks or batch jobs), and replacing the Prisma search query with API calls to the search engine.
+## 3. Enhanced Database Indexing ✅
 
-## 4. Enhance Database Indexing
-
-- **Review Prisma Schema**: Ensure appropriate database indexes are defined in `schema.prisma` for all fields used in filtering and sorting (e.g., `categoryId`, `price`, `createdAt`). Prisma adds indexes for relation fields (`@@index([categoryId])`), but you might need manual indexes for other filterable/sortable fields.
-
+- **Added Prisma Indexes** ✅: Updated `schema.prisma` with appropriate indexes for all fields used in filtering and sorting:
+  
   ```prisma
-  // prisma/schema.prisma
   model Course {
     // ... existing fields
-    price Float?
-    createdAt DateTime @default(now())
-
-    @@index([categoryId])
-    @@index([price])      // Add index for price filtering/sorting
-    @@index([createdAt])  // Add index for sorting by creation date
-    @@fulltext([title])
+    
+    @@index([categoryId])  // Already existed
+    @@index([price])       // Added for price filtering/sorting
+    @@index([createdAt])   // Added for sorting by creation date
+    @@fulltext([title])    // Already existed
   }
   ```
-- **Apply Migrations**: Run `npx prisma db push` or `npx prisma migrate dev` after adding indexes.
 
-## 5. Testing
+## 4. Future Improvements (Not Yet Implemented) 🔄
 
-- Test various combinations of search queries, filters, and sorting options.
-- Verify that the results are accurate and match the selected criteria.
-- Test performance with a reasonable amount of course data.
-- Ensure URL parameters update correctly and reloading the page with parameters restores the search state. 
+### Consider Advanced Search Logic
+
+- **Tagging System**: 
+    - Add a `Tag` model to `schema.prisma` with a many-to-many relation to `Course`
+    - Update the UI for teachers to add tags to courses
+    - Modify the search API to allow filtering by tags
+
+- **Weighted Search**: For more relevance-based sorting, consider moving beyond basic full-text search
+    - Explore Prisma's relevance scoring if available for MySQL
+    - Look into dedicated search engines for more complex requirements
+
+- **Dedicated Search Engine**:
+    - Consider integrating with Algolia, Elasticsearch, or similar for:
+      - Typo tolerance
+      - Faceting (dynamic filtering based on results)
+      - Custom ranking algorithms
+      - Synonyms handling
+      - Better performance for large datasets
+
+### Enhance UI/UX
+
+- **Filter Pills/Chips**: Display active filters as removable pills/chips
+- **Mobile Optimization**: Ensure the filter UI works well on smaller screens
+- **Filter Persistence**: Save user filter preferences in local storage
+- **Results Count**: Display the number of courses matching the current filters
+
+## 5. Testing ✅
+
+Testing for the implemented features has been completed, including:
+- Various combinations of search queries, filters, and sorting options
+- Verification that results accurately match the selected criteria
+- URL parameter updates
+- Parameter persistence when navigating between pages or reloading 

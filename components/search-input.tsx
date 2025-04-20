@@ -20,6 +20,8 @@ export const SearchInput = () => {
   const pathname = usePathname();
 
   const currentCategoryId = searchParams.get("categoryId");
+  const currentPriceRange = searchParams.get("priceRange");
+  const currentSortBy = searchParams.get("sortBy");
   
   // Using useMutation instead of useEffect for handling URL updates
   const { mutate: updateSearchParams } = useMutation({
@@ -29,6 +31,8 @@ export const SearchInput = () => {
         query: {
           categoryId: currentCategoryId,
           title: searchValue,
+          priceRange: currentPriceRange,
+          sortBy: currentSortBy
         }
       }, { skipEmptyString: true, skipNull: true });
       
@@ -44,7 +48,7 @@ export const SearchInput = () => {
     if (debouncedValue !== undefined) {
       updateSearchParams(debouncedValue);
     }
-  }, [debouncedValue, currentCategoryId, updateSearchParams]);
+  }, [debouncedValue, currentCategoryId, currentPriceRange, currentSortBy, updateSearchParams]);
 
   return (
     <div className="relative w-full max-w-[250px] xs:max-w-[280px] sm:max-w-none sm:w-[300px]">
