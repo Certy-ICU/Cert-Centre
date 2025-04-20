@@ -14,7 +14,7 @@ export const checkCourseCompletion = async (
       id: true 
     },
   });
-  const chapterIds = chapters.map(ch => ch.id);
+  const chapterIds = chapters.map((ch: { id: string }) => ch.id);
 
   if (chapterIds.length === 0) {
     return false; // Cannot complete a course with no published chapters
