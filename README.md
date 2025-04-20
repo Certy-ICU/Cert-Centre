@@ -167,7 +167,18 @@ The API follows RESTful principles with the following main endpoints:
 - `/api/uploadthing` - File upload endpoints
 - `/api/webhook` - Stripe webhook endpoint
 
-For detailed API documentation, refer to the [API Documentation](docs/improvements/api-documentation.md) guide.
+We provide comprehensive API documentation using Swagger/OpenAPI. Access the interactive API documentation by navigating to `/api-docs` in your browser when the application is running.
+
+### Generating API Documentation
+
+The API documentation is automatically generated from JSDoc annotations in the API routes. To update or regenerate the documentation:
+
+```bash
+# Generate API documentation
+pnpm generate-api-docs
+```
+
+For more information on how the API documentation is implemented, refer to the [API Documentation](docs/improvements/api-documentation.md) guide.
 
 ## 🛣️ Roadmap
 

@@ -69,6 +69,94 @@ const isDbConnected = async () => {
   }
 };
 
+/**
+ * @swagger
+ * /api/certificates/verify:
+ *   get:
+ *     summary: Verify a certificate by ID
+ *     tags: [Certificates]
+ *     parameters:
+ *       - in: query
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The certificate ID to verify
+ *     responses:
+ *       200:
+ *         description: Certificate verification successful
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 valid:
+ *                   type: boolean
+ *                   description: Whether the certificate is valid
+ *                 certificate:
+ *                   type: object
+ *                   properties:
+ *                     id: 
+ *                       type: string
+ *                     certificateId:
+ *                       type: string
+ *                     userId:
+ *                       type: string
+ *                     courseId:
+ *                       type: string
+ *                     createdAt:
+ *                       type: string
+ *                       format: date-time
+ *                     course:
+ *                       type: object
+ *                       properties:
+ *                         title:
+ *                           type: string
+ *       400:
+ *         description: Bad Request - Missing certificate ID
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 valid:
+ *                   type: boolean
+ *                   example: false
+ *                 message:
+ *                   type: string
+ *       404:
+ *         description: Certificate not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 valid:
+ *                   type: boolean
+ *                   example: false
+ *                 message:
+ *                   type: string
+ *       500:
+ *         description: Internal Server Error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
+ *       503:
+ *         description: Service Unavailable - Database connection issues
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 valid:
+ *                   type: boolean
+ *                   example: false
+ *                 message:
+ *                   type: string
+ *                 error:
+ *                   type: string
+ */
 export async function GET(req: Request) {
   // Add request ID for tracking this specific request through logs
   const requestId = Math.random().toString(36).substring(2, 10);

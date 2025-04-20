@@ -9,6 +9,47 @@ const { Video } = new Mux(
   process.env.MUX_TOKEN_SECRET!,
 );
 
+/**
+ * @swagger
+ * /api/courses/{courseId}:
+ *   delete:
+ *     summary: Delete a course and its associated resources
+ *     tags: [Courses]
+ *     parameters:
+ *       - in: path
+ *         name: courseId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The ID of the course to delete
+ *     responses:
+ *       200:
+ *         description: Course deleted successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Course'
+ *       401:
+ *         description: Unauthorized - User is not logged in or not the course owner
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
+ *       404:
+ *         description: Course not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
+ *       500:
+ *         description: Internal Server Error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
+ *     security:
+ *       - clerkAuth: []
+ */
 export async function DELETE(
   req: Request,
   { params }: { params: { courseId: string } }
@@ -57,6 +98,67 @@ export async function DELETE(
   }
 }
 
+/**
+ * @swagger
+ * /api/courses/{courseId}:
+ *   patch:
+ *     summary: Update a course
+ *     tags: [Courses]
+ *     parameters:
+ *       - in: path
+ *         name: courseId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The ID of the course to update
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               title:
+ *                 type: string
+ *                 description: The title of the course
+ *               description:
+ *                 type: string
+ *                 description: The description of the course
+ *               imageUrl:
+ *                 type: string
+ *                 format: uri
+ *                 description: URL for the course image
+ *               price:
+ *                 type: number
+ *                 description: Course price
+ *               categoryId:
+ *                 type: string
+ *                 description: ID of the course category
+ *               isPublished:
+ *                 type: boolean
+ *                 description: Whether the course is published
+ *     responses:
+ *       200:
+ *         description: Course updated successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Course'
+ *       401:
+ *         description: Unauthorized - User is not logged in or not the course owner
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
+ *       500:
+ *         description: Internal Server Error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
+ *     security:
+ *       - clerkAuth: []
+ */
 export async function PATCH(
   req: Request,
   { params }: { params: { courseId: string } }

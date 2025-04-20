@@ -1,246 +1,191 @@
-# Implementing API Documentation (Swagger/OpenAPI)
+# API Documentation (Swagger/OpenAPI)
 
-This guide explains how to automatically generate OpenAPI (Swagger) documentation for your Next.js API routes.
+This guide explains how Cert Centre LMS implements OpenAPI (Swagger) documentation for its Next.js API routes.
 
-*Self-documenting API routes in Next.js App Router isn't as straightforward as with frameworks like NestJS or using dedicated libraries with Pages Router. We can leverage JSDoc comments and a build-time script or a dedicated library compatible with App Router.*
+## Overview
 
-Let's explore an approach using `swagger-jsdoc` which reads JSDoc annotations.
+The Cert Centre API is fully documented using OpenAPI (Swagger), providing an interactive documentation experience. This documentation is automatically generated from JSDoc annotations in the API route files and a central OpenAPI specification file.
 
-## 1. Install Dependencies
+## Accessing the API Documentation
 
+Once the application is running, you can access the interactive API documentation by navigating to:
+
+```
+/api-docs
+```
+
+This page presents a Swagger UI interface where you can:
+- Browse available API endpoints organized by tags (Courses, Chapters, Certificates, etc.)
+- See required parameters, request bodies, and response schemas
+- Test API calls directly from the documentation interface
+- Understand authentication requirements
+
+## How It Works
+
+The API documentation consists of three main components:
+
+1. **Base OpenAPI Specification** (`lib/openapi-spec.js`): Defines the overall structure, server information, schemas, and security requirements.
+2. **JSDoc Annotations**: Each API route is documented with JSDoc comments that specify endpoints, methods, parameters, request/response formats, etc.
+3. **Swagger UI Page** (`app/api-docs/page.tsx`): A client-side component that renders the Swagger UI interface using the generated specification.
+
+### Implementation Details
+
+#### 1. Dependencies
+
+The implementation uses the following packages:
 ```bash
 pnpm install swagger-jsdoc swagger-ui-react
-# Or using yarn
-# yarn add swagger-jsdoc swagger-ui-react
 ```
 
-## 2. Define Base OpenAPI Specification
+#### 2. OpenAPI Specification
 
-Create a base OpenAPI definition file or define it within a script. This provides the overall structure (info, servers, etc.).
+The base specification (`lib/openapi-spec.js`) defines:
 
-```javascript
-// lib/openapi-spec.js (or .ts if using TypeScript for scripts)
+- General API information (title, version, description)
+- Server URLs
+- Security schemes (Clerk authentication)
+- Reusable schemas for common data types (Course, Chapter, Certificate, etc.)
+- Pattern for scanning API route files
 
-const swaggerJsdoc = require('swagger-jsdoc');
+During the build process (or when running `generate-api-docs`), it:
+- Scans API files for JSDoc annotations
+- Combines them with the base specification
+- Generates a `swagger.json` file in the `public` directory
 
-const options = {
-  definition: {
-    openapi: '3.0.0',
-    info: {
-      title: 'Cert Centre LMS API',
-      version: '1.0.0',
-      description: 'API documentation for the Cert Centre Learning Management System',
-    },
-    servers: [
-      {
-        url: process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000',
-        description: 'Development server',
-      },
-      // Add production server if applicable
-    ],
-    components: {
-      // Define reusable components like securitySchemes, schemas, etc.
-      // securitySchemes: {
-      //   bearerAuth: { // Example for JWT/Clerk - Adjust if needed
-      //     type: 'http',
-      //     scheme: 'bearer',
-      //     bearerFormat: 'JWT',
-      //   },
-      // },
-      schemas: {
-        // Define reusable schemas for request/response bodies
-        ErrorResponse: {
-          type: 'object',
-          properties: {
-            message: {
-              type: 'string',
-              description: 'Error message'
-            }
-          }
-        },
-        Course: {
-          type: 'object',
-          properties: {
-            id: { type: 'string', format: 'uuid' },
-            title: { type: 'string' },
-            description: { type: 'string' },
-            price: { type: 'number', format: 'float' },
-            isPublished: { type: 'boolean' },
-            // ... other Course fields from Prisma
-          }
-        },
-        // ... Add other schemas (Chapter, Comment, etc.)
-      }
-    },
-    // security: [
-    //   {
-    //     bearerAuth: [], // Apply security globally if needed
-    //   },
-    // ],
-  },
-  // Path to the API docs
-  // Use glob patterns to scan your API route files
-  apis: ['./app/api/**/*.ts', './app/api/**/*.js'], // Adjust pattern as needed
-};
+#### 3. API Route Annotations
 
-const openapiSpecification = swaggerJsdoc(options);
-
-module.exports = openapiSpecification;
-
-// Optional: Script to generate a static JSON file during build
-// const fs = require('fs');
-// fs.writeFileSync('./public/swagger.json', JSON.stringify(openapiSpecification, null, 2));
-```
-
-## 3. Annotate API Routes with JSDoc
-
-Add JSDoc comments following the OpenAPI specification syntax to your API route handlers (`GET`, `POST`, `PATCH`, `DELETE` functions in `app/api/.../route.ts`).
+API routes are documented using JSDoc comments that follow the OpenAPI specification syntax. For example:
 
 ```typescript
-// Example: app/api/courses/[courseId]/route.ts
-import { NextResponse } from 'next/server';
-import { auth } from '@clerk/nextjs';
-import { db } from '@/lib/db';
-
 /**
  * @swagger
- * /api/courses/{courseId}:
- *   get:
- *     summary: Get a specific course by ID
+ * /api/courses:
+ *   post:
+ *     summary: Create a new course
  *     tags: [Courses]
- *     parameters:
- *       - in: path
- *         name: courseId
- *         required: true
- *         schema:
- *           type: string
- *         description: The ID of the course to retrieve
- *     responses:
- *       200:
- *         description: Course details retrieved successfully
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/Course' # Reference your defined schema
- *       404:
- *         description: Course not found
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/ErrorResponse'
- *       500:
- *         description: Internal Server Error
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/ErrorResponse'
- */
-export async function GET(
-  req: Request,
-  { params }: { params: { courseId: string } }
-) {
-  // ... your route logic
-}
-
-/**
- * @swagger
- * /api/courses/{courseId}:
- *   patch:
- *     summary: Update a specific course
- *     tags: [Courses]
- *     parameters:
- *       - in: path
- *         name: courseId
- *         required: true
- *         schema:
- *           type: string
- *         description: The ID of the course to update
  *     requestBody:
  *       required: true
  *       content:
  *         application/json:
  *           schema:
  *             type: object
+ *             required:
+ *               - title
  *             properties:
- *               title: { type: string }
- *               description: { type: string }
- *               price: { type: number, format: float }
- *               # ... other updatable fields
+ *               title:
+ *                 type: string
+ *                 description: The title of the course
  *     responses:
  *       200:
- *         description: Course updated successfully
+ *         description: Course created successfully
  *         content:
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/Course'
  *       401:
- *         description: Unauthorized (User not logged in or not owner/admin)
- *       404:
- *         description: Course not found
- *       500:
- *         description: Internal Server Error
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/ErrorResponse'
+ *         description: Unauthorized
  *     security:
- *       - bearerAuth: [] # If authentication is required for this endpoint
+ *       - clerkAuth: []
  */
-export async function PATCH(
-  req: Request,
-  { params }: { params: { courseId: string } }
-) {
-   // Requires auth check (e.g., userId must match course.userId)
-  const { userId } = auth();
-  const values = await req.json();
-  // ... your route logic
+export async function POST(req: Request) {
+  // Implementation
 }
-
-// Add similar JSDoc annotations for DELETE, POST, etc.
-// Define tags: [Courses], [Chapters], [Comments], [Users], etc. for organization.
 ```
 
-## 4. Create API Documentation Page
+#### 4. Documentation UI
 
-Create a new route (e.g., `app/api-docs/page.tsx`) to display the Swagger UI.
+The Swagger UI component (`app/api-docs/page.tsx`) renders the interactive documentation using the generated specification:
 
 ```typescript
 // app/api-docs/page.tsx
-'use client'; // Swagger UI component needs to be client-side
+'use client';
 
 import React from 'react';
 import SwaggerUI from 'swagger-ui-react';
 import 'swagger-ui-react/swagger-ui.css';
 
-// Option 1: Fetch the generated spec if you created a static file
-// const specUrl = "/swagger.json";
-
-// Option 2: Import the spec directly (if not using a static file)
-// Note: This might increase client bundle size significantly.
-// Consider fetching or generating dynamically if it becomes too large.
-import spec from '@/lib/openapi-spec'; // Adjust path if needed
-
 const ApiDocsPage = () => {
-  // return <SwaggerUI url={specUrl} />;
-  return <SwaggerUI spec={spec} />;
+  return (
+    <div className="container mx-auto p-4">
+      <h1 className="text-2xl font-bold mb-4">Cert Centre LMS API Documentation</h1>
+      <SwaggerUI url="/swagger.json" />
+    </div>
+  );
 };
 
 export default ApiDocsPage;
 ```
 
-*Note*: Choose Option 1 (fetching `/swagger.json`) if you generate the spec file during build (`node ./lib/openapi-spec.js` added to your `package.json` build script) or Option 2 (importing) for simplicity if the spec isn't huge.
+## Scripts and Commands
 
-## 5. Run and Test
+The following npm/pnpm scripts are available for working with API documentation:
 
-- Run your development server (`npm run dev`).
-- Navigate to `/api-docs` (or the route you created).
-- You should see the Swagger UI displaying your annotated API routes.
-- Test the "Try it out" functionality within Swagger UI (this will make actual API calls).
+```bash
+# Generate API documentation
+pnpm generate-api-docs
+
+# Verify API documentation
+pnpm verify-api-docs
+
+# Generate documentation during build
+pnpm build   # Includes generate-api-docs
+```
+
+The verification script (`scripts/verify-api-docs.js`) checks:
+1. That the `swagger.json` exists
+2. Contains valid OpenAPI specification
+3. Lists all documented endpoints
+
+## Adding Documentation to New API Routes
+
+To document a new API route:
+
+1. Add JSDoc annotations above each HTTP method handler (GET, POST, PATCH, DELETE)
+2. Use the OpenAPI specification syntax in the comments
+3. Reference common schemas where appropriate (`#/components/schemas/...`)
+4. Include required parameters, request bodies, responses, and security requirements
+5. Regenerate the documentation with `pnpm generate-api-docs`
+
+Example annotation structure:
+
+```typescript
+/**
+ * @swagger
+ * /api/your-endpoint:
+ *   [method]:
+ *     summary: Brief summary
+ *     tags: [Category]
+ *     parameters:
+ *       - name: paramName
+ *         in: path/query
+ *         required: true/false
+ *         schema:
+ *           type: string/number/etc
+ *     requestBody: {}     // If needed
+ *     responses: {}       // Status codes and formats
+ *     security: []        // Auth requirements
+ */
+```
+
+## Adding New Schemas
+
+To add a new reusable schema:
+
+1. Edit `lib/openapi-spec.js`
+2. Add the schema to the `components.schemas` section
+3. Use the schema in API annotations with `$ref: '#/components/schemas/YourSchema'`
+
+## Currently Documented Endpoints
+
+The API documentation includes the following endpoints:
+
+- Courses API: Create, update, and delete courses
+- Chapters API: Create and retrieve course chapters
+- Certificates API: Verify certificate validity
 
 ## Considerations
 
-- **Maintenance**: Keep JSDoc comments updated as your API evolves.
-- **Schema Definitions**: Defining reusable schemas (`#/components/schemas/...`) makes the documentation cleaner and more maintainable.
-- **Authentication**: Clearly document how authentication works (e.g., using Clerk) and mark protected endpoints using the `security` field in JSDoc.
-- **Build Process**: Generating a static `swagger.json` during the build (`npm run build`) is generally preferred for performance, especially for large APIs.
-- **Alternative Libraries**: Explore other libraries like `next-swagger-doc` (might have better App Router support evolving) or framework-specific solutions if you migrate parts of the API to something like NestJS. 
+- Keep JSDoc comments updated when API routes change
+- Run `verify-api-docs` to ensure documentation is valid
+- Add new schemas to the OpenAPI specification as needed
+- The documentation is regenerated during each build 

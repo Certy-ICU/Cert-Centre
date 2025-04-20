@@ -154,6 +154,68 @@ test('component with context', () => {
 });
 ```
 
+## Testing API Documentation
+
+The API documentation can be tested using the following approaches:
+
+1. **Verify API Documentation Generation**:
+
+```bash
+# Generate API documentation
+pnpm generate-api-docs
+
+# Verify documentation is valid
+pnpm verify-api-docs
+```
+
+2. **Manually Test Swagger UI**:
+   - Start the development server: `pnpm dev`
+   - Navigate to `/api-docs` in your browser
+   - Verify all expected endpoints are documented
+   - Test the "Try it out" functionality for key endpoints
+
+3. **Check Documentation Coverage**:
+   - The `verify-api-docs` script will list all documented endpoints
+   - Compare against your API routes to ensure full coverage
+
+4. **Testing JSDoc Annotations**:
+   
+   When adding or modifying API routes, ensure your JSDoc annotations are correct:
+   - Paths match the actual API routes
+   - Required parameters are properly documented
+   - Response schemas accurately reflect what the API returns
+   - Security requirements are correctly specified
+
+5. **Automated Testing**:
+
+```javascript
+// Example test for API documentation
+describe('API Documentation', () => {
+  test('swagger.json is generated and valid', async () => {
+    // This could be run as part of your CI pipeline
+    const { execSync } = require('child_process');
+    
+    // Generate the docs
+    execSync('pnpm generate-api-docs');
+    
+    // Read the generated file
+    const fs = require('fs');
+    const path = require('path');
+    const swaggerPath = path.join(process.cwd(), 'public', 'swagger.json');
+    
+    expect(fs.existsSync(swaggerPath)).toBe(true);
+    
+    // Parse and validate content
+    const swaggerContent = fs.readFileSync(swaggerPath, 'utf8');
+    const swaggerJson = JSON.parse(swaggerContent);
+    
+    expect(swaggerJson.openapi).toBeDefined();
+    expect(swaggerJson.paths).toBeDefined();
+    expect(Object.keys(swaggerJson.paths).length).toBeGreaterThan(0);
+  });
+});
+```
+
 ## Resources
 
 - [Jest Documentation](https://jestjs.io/docs/getting-started)
