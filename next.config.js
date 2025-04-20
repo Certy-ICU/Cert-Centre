@@ -41,7 +41,13 @@ const nextConfig = {
       "img.clerk.com",
       "images.clerk.dev"
     ]
-  }
+  },
+  // Transpile problematic modules that need to be compatible with Edge Runtime
+  transpilePackages: [
+    'node-fetch',
+    '@clerk/shared',
+    'scheduler'
+  ]
 }
 
 module.exports = withPWA(nextConfig)
