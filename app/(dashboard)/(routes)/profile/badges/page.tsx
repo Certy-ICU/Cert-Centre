@@ -183,6 +183,11 @@ export default function BadgeManagementPage() {
       : allBadges.filter(badge => !badge.earned && badge.tier === tier);
   };
   
+  // Helper function to check if object has badge property
+  const isBadgeType = (badge: UserBadgeType | BadgeWithStatus): badge is UserBadgeType => {
+    return 'badge' in badge;
+  };
+  
   if (loading) {
     return (
       <div className="flex items-center justify-center h-[400px]">
@@ -263,13 +268,13 @@ export default function BadgeManagementPage() {
                                     className="badge-item"
                                   >
                                     <UserBadge 
-                                      badge={badge.badge} 
+                                      badge={isBadgeType(badge) ? badge.badge : badge} 
                                       size="md"
-                                      customization={{
+                                      customization={isBadgeType(badge) ? {
                                         isFavorite: badge.isFavorite,
                                         displayColor: badge.displayColor
-                                      }}
-                                      onCustomize={() => toggleFavorite(badge.id, badge.isFavorite)}
+                                      } : undefined}
+                                      onCustomize={isBadgeType(badge) ? () => toggleFavorite(badge.id, badge.isFavorite) : undefined}
                                     />
                                   </div>
                                 )}
@@ -292,10 +297,18 @@ export default function BadgeManagementPage() {
                         {filterBadgesByTier(currentTab).map((badge) => (
                           <div key={badge.id} className="badge-item">
                             <UserBadge 
-                              badge={{
-                                ...badge,
-                                earned: false
-                              }}
+                              badge={isBadgeType(badge) 
+                                ? { 
+                                    ...badge.badge, 
+                                    earned: false, 
+                                    earnedDate: undefined 
+                                  } 
+                                : { 
+                                    ...badge, 
+                                    earned: false, 
+                                    earnedDate: badge.earnedDate || undefined 
+                                  }
+                              }
                               size="md"
                             />
                           </div>
@@ -340,7 +353,7 @@ export default function BadgeManagementPage() {
                               {...provided.dragHandleProps}
                             >
                               <UserBadge 
-                                badge={badge.badge} 
+                                badge={isBadgeType(badge) ? badge.badge : badge} 
                                 size="lg"
                               />
                             </div>

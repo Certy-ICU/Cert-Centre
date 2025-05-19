@@ -1,6 +1,7 @@
 import { auth } from "@clerk/nextjs";
 import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
+import { Prisma } from "@prisma/client";
 import { formatDistanceToNow } from "date-fns";
 import { revalidatePath } from "next/cache";
 
@@ -26,7 +27,7 @@ const ReportedCommentsPage = async () => {
   const reportedComments = await db.comment.findMany({
     where: {
       moderation: {
-        not: null
+        not: undefined
       }
     },
     include: {
@@ -58,7 +59,8 @@ const ReportedCommentsPage = async () => {
 
   // Filter to show only reported comments from courses owned by this teacher
   const teacherReportedComments = reportedComments.filter(comment => {
-    const moderation = comment.moderation as Moderation | null;
+    // Cast to unknown first, then to the expected type
+    const moderation = (comment.moderation as unknown) as Moderation | null;
     return comment.course.userId === userId && moderation?.isReported === true;
   });
 
@@ -75,7 +77,7 @@ const ReportedCommentsPage = async () => {
       await db.comment.update({
         where: { id: commentId },
         data: { 
-          moderation: null
+          moderation: Prisma.JsonNull
         }
       });
     }
@@ -112,7 +114,8 @@ const ReportedCommentsPage = async () => {
       ) : (
         <div className="space-y-6">
           {teacherReportedComments.map((comment) => {
-            const moderation = comment.moderation as Moderation;
+            // Cast to unknown first, then to the expected type
+            const moderation = (comment.moderation as unknown) as Moderation;
             
             return (
               <Card key={comment.id} className="p-4 dark:bg-slate-800 dark:border-slate-700">

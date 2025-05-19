@@ -71,7 +71,7 @@ const ProfilePage = async () => {
     name: eb.badge.name,
     description: eb.badge.description,
     iconUrl: eb.badge.iconUrl,
-    tier: eb.badge.tier,
+    tier: eb.badge.tier as "bronze" | "silver" | "gold",
     earned: true,
     earnedDate: eb.earnedAt
   }));
@@ -83,7 +83,7 @@ const ProfilePage = async () => {
       name: badge.name,
       description: badge.description,
       iconUrl: badge.iconUrl,
-      tier: badge.tier,
+      tier: badge.tier as "bronze" | "silver" | "gold",
       earned: false
     }));
   

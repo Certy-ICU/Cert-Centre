@@ -1,5 +1,8 @@
 import { db } from "@/lib/db";
-import { Course, Purchase } from "@prisma/client";
+import type { Prisma } from "@prisma/client";
+
+type Course = Prisma.CourseGetPayload<{}>;
+type Purchase = Prisma.PurchaseGetPayload<{}>;
 
 type PurchaseWithCourse = Purchase & {
   course: Course;

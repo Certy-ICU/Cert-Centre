@@ -221,6 +221,9 @@ export const useTypingHandler = (chapterId: string, courseId: string) => {
   const sendTypingEvent = () => {
     console.log('useTypingHandler: Sending typing indicator');
     
+    // Add null check to ensure user is not null
+    if (!user) return;
+    
     const userData = {
       id: user.id,
       name: user.fullName || user.username || 'Anonymous',

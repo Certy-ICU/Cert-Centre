@@ -103,7 +103,7 @@ export async function GET(req: Request) {
     }
     
     // Get all certificates for the current user
-    let userCertificates = [];
+    let userCertificates: { id: string; certificateId: string; courseId: string; createdAt: Date }[] = [];
     try {
       userCertificates = await prisma.certificate.findMany({
         where: { userId },

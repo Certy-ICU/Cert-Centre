@@ -67,7 +67,7 @@ export const CommentSection = ({
       console.log('Connected to Pusher successfully!');
     });
     
-    pusherClient.connection.bind('error', (err) => {
+    pusherClient.connection.bind('error', (err: Error) => {
       console.error('Pusher connection error:', err);
     });
     
@@ -104,7 +104,7 @@ export const CommentSection = ({
       console.log('Successfully subscribed to', channelName);
     });
 
-    channel.bind('pusher:subscription_error', (error) => {
+    channel.bind('pusher:subscription_error', (error: Error) => {
       console.error('Failed to subscribe to', channelName, error);
     });
 
